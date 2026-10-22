@@ -1,0 +1,25 @@
+# folke/tokyonight.nvim colors/storm.lua + night.lua; brown, brown_dark, tan, green_dark derived
+name = "Tokyo Night"
+
+[day]
+fg = "#c0caf5"
+muted = "#a9b1d6"
+subtle = "#565f89"
+red = "#f7768e"
+orange = "#ff9e64"
+yellow = "#e0af68"
+green = "#9ece6a"
+green_dark = "#637d4b"
+cyan = "#7dcfff"
+blue = "#7aa2f7"
+blue_dark = "#3d59a1"
+magenta = "#bb9af7"
+brown = "#a36a4b"
+brown_dark = "#714d3e"
+tan = "#d5b899"
+
+[night]
+green = "#708f52"
+green_dark = "#485a3e"
+brown = "#734e3e"
+tan = "#948171"

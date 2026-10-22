@@ -1,9 +1,0 @@
-.git
-.github
-/target
-/result
-docs
-flake.lock
-flake.nix
-nix
-tests

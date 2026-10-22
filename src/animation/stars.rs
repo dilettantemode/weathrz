@@ -23,6 +23,7 @@ struct ShootingStar {
 }
 
 pub struct StarSystem {
+    glyphs: crate::glyphs::Glyphs,
     stars: Vec<Star>,
     shooting_star: Option<ShootingStar>,
     terminal_width: u16,
@@ -36,6 +37,7 @@ impl StarSystem {
         let stars = Self::create_stars(terminal_width, terminal_height, &[]);
 
         Self {
+            glyphs: crate::glyphs::Glyphs::Ascii,
             stars,
             shooting_star: None,
             terminal_width,
@@ -153,7 +155,12 @@ impl StarSystem {
         }
     }
 
-    pub fn render(&self, renderer: &mut TerminalRenderer) -> io::Result<()> {
+    pub fn render(
+        &self,
+        renderer: &mut TerminalRenderer,
+        star_colors: &[Color; 2],
+        shooting: Color,
+    ) -> io::Result<()> {
         for star in &self.stars {
             let ch = if star.brightness > 0.8 {
                 '*'
@@ -163,11 +170,12 @@ impl StarSystem {
                 '.'
             };
             let color = if star.brightness > 0.6 {
-                Color::White
+                star_colors[0]
             } else {
-                Color::DarkGrey
+                star_colors[1]
             };
 
+            let ch = crate::glyphs::swap(self.glyphs, crate::glyphs::Element::Star, ch);
             renderer.render_char(star.x, star.y, ch, color)?;
         }
 
@@ -182,7 +190,8 @@ impl StarSystem {
                 && head_y >= 0
                 && head_y < self.terminal_height as i16
             {
-                renderer.render_char(head_x as u16, head_y as u16, '*', Color::White)?;
+                let head = crate::glyphs::swap(self.glyphs, crate::glyphs::Element::Star, '*');
+                renderer.render_char(head_x as u16, head_y as u16, head, shooting)?;
             }
 
             for i in 1..star.length {
@@ -195,7 +204,8 @@ impl StarSystem {
                     && trail_y < self.terminal_height as i16
                 {
                     let ch = if i == 1 { '+' } else { '.' };
-                    renderer.render_char(trail_x as u16, trail_y as u16, ch, Color::White)?;
+                    let ch = crate::glyphs::swap(self.glyphs, crate::glyphs::Element::Star, ch);
+                    renderer.render_char(trail_x as u16, trail_y as u16, ch, shooting)?;
                 }
             }
         }
@@ -233,8 +243,9 @@ impl AnimationSystem for StarSystem {
     fn render(
         &mut self,
         renderer: &mut TerminalRenderer,
-        _ctx: &FrameContext<'_>,
+        ctx: &FrameContext<'_>,
     ) -> io::Result<()> {
-        StarSystem::render(self, renderer)
+        self.glyphs = ctx.state.glyphs;
+        StarSystem::render(self, renderer, &ctx.colors.stars, ctx.colors.shooting_star)
     }
 }

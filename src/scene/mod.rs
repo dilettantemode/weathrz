@@ -2,20 +2,28 @@ pub mod overlay;
 pub mod world;
 
 use crate::render::TerminalRenderer;
-use crate::theme::Palette;
-use crate::weather::WeatherConditions;
+use crate::theme::colors::ElementColors;
 use std::collections::HashMap;
 use std::io;
 
 pub struct SceneContext<'a> {
-    pub conditions: &'a WeatherConditions,
-    pub palette: &'a Palette,
+    pub colors: &'a ElementColors,
+    pub garden: crate::scene::world::trees::Garden,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct DoorAnchor {
+    pub x: u16,
+    pub width: u16,
+    pub ground_y: u16,
 }
 
 #[derive(Clone, Copy)]
 pub struct SceneLayout {
     pub ground_y: u16,
+    pub skyline_y: u16,
     pub chimney_pos: Option<ChimneyPosition>,
+    pub door: Option<DoorAnchor>,
     pub width: u16,
     pub height: u16,
 }

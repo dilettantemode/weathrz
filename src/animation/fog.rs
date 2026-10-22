@@ -12,7 +12,7 @@ struct FogWisp {
     y: f32,
     speed_x: f32,
     character: char,
-    color: Color,
+    tier: usize,
     lifetime: u32,
     max_lifetime: u32,
 }
@@ -28,23 +28,14 @@ impl FogWisp {
         let chars = ['.', ',', '-', '~'];
         let char_idx = (rng.random::<u32>() as usize) % chars.len();
 
-        let colors = [
-            Color::Grey,
-            Color::DarkGrey,
-            Color::Rgb {
-                r: 120,
-                g: 120,
-                b: 120,
-            },
-        ];
-        let color_idx = (rng.random::<u32>() as usize) % colors.len();
+        let tier = (rng.random::<u32>() as usize) % 3;
 
         Self {
             x,
             y,
             speed_x: (rng.random::<f32>() - 0.5) * 0.15,
             character: chars[char_idx],
-            color: colors[color_idx],
+            tier,
             lifetime: 0,
             max_lifetime: 100 + (rng.random::<u32>() % 200),
         }
@@ -63,6 +54,7 @@ impl FogWisp {
 }
 
 pub struct FogSystem {
+    glyphs: crate::glyphs::Glyphs,
     wisps: VecDeque<FogWisp>,
     terminal_width: u16,
     terminal_height: u16,
@@ -101,9 +93,10 @@ impl AnimationSystem for FogSystem {
     fn render(
         &mut self,
         renderer: &mut TerminalRenderer,
-        _ctx: &FrameContext<'_>,
+        ctx: &FrameContext<'_>,
     ) -> io::Result<()> {
-        FogSystem::render(self, renderer)
+        self.glyphs = ctx.state.glyphs;
+        FogSystem::render(self, renderer, &ctx.colors.fog)
     }
 }
 
@@ -116,6 +109,7 @@ impl FogSystem {
         };
 
         Self {
+            glyphs: crate::glyphs::Glyphs::Ascii,
             wisps: VecDeque::with_capacity(wisps_capacity),
             terminal_width,
             terminal_height,
@@ -162,14 +156,16 @@ impl FogSystem {
         }
     }
 
-    pub fn render(&self, renderer: &mut TerminalRenderer) -> io::Result<()> {
+    pub fn render(&self, renderer: &mut TerminalRenderer, colors: &[Color; 3]) -> io::Result<()> {
         for wisp in &self.wisps {
             let x = wisp.x as i16;
             let y = wisp.y as i16;
 
             if x >= 0 && x < self.terminal_width as i16 && y >= 0 && y < self.terminal_height as i16
             {
-                renderer.render_char(x as u16, y as u16, wisp.character, wisp.color)?;
+                let ch =
+                    crate::glyphs::swap(self.glyphs, crate::glyphs::Element::Fog, wisp.character);
+                renderer.render_char(x as u16, y as u16, ch, colors[wisp.tier])?;
             }
         }
         Ok(())

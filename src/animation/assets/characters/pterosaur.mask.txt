@@ -1,0 +1,10 @@
+# mask for pterosaur.txt
+ t
+  ttt           t
+    nnnn   nnnnnnnnooo
+        nnn   nnn
+---
+                t
+        tttttttt tttt
+           nnn    foooo
+               nnnn

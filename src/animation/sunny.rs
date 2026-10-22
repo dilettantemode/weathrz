@@ -2,9 +2,8 @@ use super::Animation;
 use crate::animation::{
     AnimationController, AnimationSystem, FrameCommands, FrameContext, RenderLayer,
 };
+use crate::astro::SunSky;
 use crate::render::TerminalRenderer;
-use crate::weather::types::CelestialEvents;
-use chrono::{DateTime, NaiveDateTime, NaiveTime};
 use crossterm::style::Color;
 use rand::Rng;
 
@@ -20,6 +19,7 @@ const SUN_FRAMES: [&str; 2] = [
 
 pub struct SunnyAnimation {
     frames: Vec<Vec<String>>,
+    color: Color,
 }
 
 impl SunnyAnimation {
@@ -28,7 +28,10 @@ impl SunnyAnimation {
             .iter()
             .map(|src| src.lines().map(|l| l.to_string()).collect())
             .collect();
-        Self { frames }
+        Self {
+            frames,
+            color: Color::Reset,
+        }
     }
 }
 
@@ -42,7 +45,7 @@ impl Animation for SunnyAnimation {
     }
 
     fn get_color(&self) -> Color {
-        Color::Yellow
+        self.color
     }
 }
 
@@ -64,56 +67,6 @@ impl SunSystem {
             animation: SunnyAnimation::new(),
             controller: AnimationController::new(),
             last_frame_time: Instant::now(),
-        }
-    }
-
-    fn sun_y(
-        now: NaiveTime,
-        lowest: NaiveTime,
-        highest: NaiveTime,
-        horizon_y: u16,
-        default_y: u16,
-    ) -> u16 {
-        use std::f64::consts::PI;
-
-        const BUILDING_BIAS: u16 = 5;
-
-        let half_period = (highest - lowest).num_seconds().unsigned_abs() as f64;
-        if half_period == 0.0 {
-            return default_y;
-        }
-
-        let dist_from_peak = (now - highest).num_seconds().unsigned_abs() as f64;
-        let progress = (dist_from_peak / half_period).clamp(0.0, 1.0);
-        let range = horizon_y
-            .saturating_sub(default_y)
-            .saturating_sub(BUILDING_BIAS) as f64;
-        let offset = range * (1.0 - (progress * PI).cos()) / 2.0;
-
-        default_y + offset.round() as u16
-    }
-
-    fn dynamic_y(
-        now: NaiveTime,
-        sun: &CelestialEvents,
-        horizon_y: u16,
-        default_y: u16,
-        hidden_y: u16,
-    ) -> u16 {
-        let (Some(begin_twilight), Some(upper_transit), Some(end_twilight)) =
-            (sun.begin_twilight, sun.upper_transit, sun.end_twilight)
-        else {
-            return default_y;
-        };
-
-        if now < upper_transit {
-            Self::sun_y(now, begin_twilight, upper_transit, horizon_y, default_y)
-        } else if now < end_twilight {
-            Self::sun_y(now, end_twilight, upper_transit, horizon_y, default_y)
-        } else if now > end_twilight {
-            hidden_y
-        } else {
-            default_y
         }
     }
 }
@@ -162,48 +115,64 @@ impl AnimationSystem for SunSystem {
             return Ok(());
         }
 
-        let default_y = if ctx.size.height > 20 { 3 } else { 2 };
-        let y_offset = Self::resolved_sun_y(ctx, default_y);
-        self.controller
-            .render_frame(renderer, &self.animation, y_offset)
+        let top = if ctx.size.height > 20 { 3 } else { 2 };
+        let lines = self.controller.frame(&self.animation);
+        let art_width = lines.iter().map(|line| line.len()).max().unwrap_or(0) as u16;
+        let (x, y) = sun_spot(
+            ctx.state.sun_sky,
+            ctx.size.width,
+            ctx.horizon_y,
+            top,
+            art_width,
+        );
+        renderer.render_colored_at(lines, x, y, ctx.colors.sun)
     }
 }
 
-impl SunSystem {
-    fn parse_weather_time(timestamp: &str) -> Option<NaiveTime> {
-        if let Ok(dt) = DateTime::parse_from_rfc3339(timestamp) {
-            return Some(dt.time());
-        }
+const BUILDING_BIAS: u16 = 5;
+const SIDE_MARGIN: u16 = 1;
 
-        if let Ok(dt) = NaiveDateTime::parse_from_str(timestamp, "%Y-%m-%dT%H:%M:%S") {
-            return Some(dt.time());
-        }
+pub(crate) fn sun_spot(
+    sky: Option<SunSky>,
+    width: u16,
+    horizon_y: u16,
+    top: u16,
+    art_width: u16,
+) -> (u16, u16) {
+    let centred = (width.saturating_sub(art_width) / 2, top);
+    let Some((sky, progress)) = sky.and_then(|sky| sky.day_progress.map(|p| (sky, p))) else {
+        return centred;
+    };
+    arc_spot(
+        progress,
+        sky.elevation_deg,
+        sky.noon_elevation_deg,
+        (width, horizon_y, top),
+        art_width,
+    )
+}
 
-        if let Ok(dt) = NaiveDateTime::parse_from_str(timestamp, "%Y-%m-%dT%H:%M") {
-            return Some(dt.time());
-        }
-
-        None
-    }
-
-    fn weather_time_from_ctx(ctx: &FrameContext<'_>) -> Option<NaiveTime> {
-        let weather = ctx.state.current_weather.as_ref()?;
-        Self::parse_weather_time(&weather.timestamp)
-    }
-
-    fn resolved_sun_y(ctx: &FrameContext<'_>, default_y: u16) -> u16 {
-        if let Some(now) = Self::weather_time_from_ctx(ctx) {
-            Self::dynamic_y(
-                now,
-                &ctx.conditions.sun,
-                ctx.horizon_y,
-                default_y,
-                ctx.size.height,
-            )
-        } else {
-            default_y
-        }
-    }
+pub(crate) fn arc_spot(
+    progress: f64,
+    elevation_deg: f64,
+    peak_deg: f64,
+    (width, horizon_y, top): (u16, u16, u16),
+    art_width: u16,
+) -> (u16, u16) {
+    let span = width.saturating_sub(art_width + 2 * SIDE_MARGIN);
+    let x = if width >= art_width + 2 * SIDE_MARGIN {
+        SIDE_MARGIN + (progress.clamp(0.0, 1.0) * f64::from(span)).round() as u16
+    } else {
+        0
+    };
+    let range = horizon_y.saturating_sub(top).saturating_sub(BUILDING_BIAS);
+    let height = if peak_deg > 0.0 {
+        (elevation_deg / peak_deg).clamp(0.0, 1.0)
+    } else {
+        0.0
+    };
+    let y = top + (f64::from(range) * (1.0 - height)).round() as u16;
+    (x, y)
 }
 
 #[cfg(test)]
@@ -211,39 +180,49 @@ mod tests {
     use super::*;
     use crate::animation::TerminalSize;
     use crate::app_state::AppState;
+    use crate::astro::SunSky;
     use crate::config::LocationDisplay;
     use crate::weather::types::CelestialEvents;
     use crate::weather::{
         WeatherCondition, WeatherConditions, WeatherData, WeatherLocation, WeatherUnits,
     };
-    use chrono::NaiveTime;
 
-    fn sample_celestial_events() -> CelestialEvents {
-        CelestialEvents {
-            is_day: true,
-            begin_twilight: Some(NaiveTime::from_hms_opt(5, 30, 0).unwrap()),
-            rise: Some(NaiveTime::from_hms_opt(6, 0, 0).unwrap()),
-            upper_transit: Some(NaiveTime::from_hms_opt(12, 0, 0).unwrap()),
-            set: Some(NaiveTime::from_hms_opt(18, 0, 0).unwrap()),
-            end_twilight: Some(NaiveTime::from_hms_opt(20, 0, 0).unwrap()),
-        }
+    fn sky(progress: f64, elevation: f64) -> Option<SunSky> {
+        Some(SunSky {
+            elevation_deg: elevation,
+            azimuth_deg: 0.0,
+            noon_elevation_deg: 80.0,
+            day_progress: Some(progress),
+        })
     }
 
     #[test]
-    fn parses_rfc3339_timestamp() {
-        let time = SunSystem::parse_weather_time("2024-01-01T12:34:56Z").unwrap();
-        assert_eq!(time, NaiveTime::from_hms_opt(12, 34, 56).unwrap());
+    fn the_sun_rises_left_peaks_in_the_middle_and_sets_right() {
+        assert_eq!(sun_spot(sky(0.0, -0.8), 110, 25, 3, 21), (1, 20));
+        assert_eq!(sun_spot(sky(0.25, 40.0), 110, 25, 3, 21), (23, 12));
+        assert_eq!(sun_spot(sky(0.5, 80.0), 110, 25, 3, 21), (45, 3));
+        assert_eq!(sun_spot(sky(1.0, -0.8), 110, 25, 3, 21), (88, 20));
+        assert_eq!(sun_spot(sky(1.3, -10.0), 110, 25, 3, 21), (88, 20));
     }
 
     #[test]
-    fn parses_naive_timestamp() {
-        let time = SunSystem::parse_weather_time("2024-01-01T06:15").unwrap();
-        assert_eq!(time, NaiveTime::from_hms_opt(6, 15, 0).unwrap());
+    fn without_a_sky_the_sun_keeps_its_old_spot() {
+        assert_eq!(sun_spot(None, 110, 25, 3, 21), (44, 3));
+        let never_rises = SunSky {
+            day_progress: None,
+            ..sky(0.5, 80.0).unwrap()
+        };
+        assert_eq!(sun_spot(Some(never_rises), 110, 25, 3, 21), (44, 3));
     }
 
     #[test]
-    fn resolved_y_uses_weather_time() {
-        let sun = sample_celestial_events();
+    fn tiny_panes_keep_the_sun_on_screen() {
+        assert_eq!(sun_spot(sky(1.0, 0.0), 15, 6, 2, 21), (0, 2));
+    }
+
+    #[test]
+    fn the_sun_is_drawn_where_the_sky_puts_it() {
+        let sun = CelestialEvents::from_bool(true);
         let location = WeatherLocation {
             latitude: 0.0,
             longitude: 0.0,
@@ -259,14 +238,20 @@ mod tests {
             wind_direction: 0.0,
             sun,
             moon_phase: None,
-            timestamp: "2024-01-01T21:00:00Z".to_string(),
+            humidity: None,
+            timestamp: String::new(),
             attribution: String::new(),
+            feels_like: None,
+            uv_index: None,
+            outlook: Vec::new(),
         });
+        state.sun_sky = sky(0.0, -0.8);
         let conditions = WeatherConditions {
             sun,
             ..WeatherConditions::default()
         };
-
+        let colors = crate::theme::catalogue::default_colors().day;
+        let events = crate::events::ActiveEvents::default();
         let ctx = FrameContext {
             size: TerminalSize {
                 width: 80,
@@ -277,51 +262,20 @@ mod tests {
             state: &state,
             show_leaves: false,
             chimney: None,
+            skyline_y: 0,
+            door: None,
+            events: &events,
+            colors: &colors,
         };
-
-        let y = SunSystem::resolved_sun_y(&ctx, 3);
-        assert_eq!(y, ctx.size.height);
-    }
-
-    #[test]
-    fn resolved_y_defaults_without_time() {
-        let sun = sample_celestial_events();
-        let location = WeatherLocation {
-            latitude: 0.0,
-            longitude: 0.0,
-            elevation: None,
-        };
-        let units = WeatherUnits::metric();
-        let mut state = AppState::new(location, None, LocationDisplay::Coordinates, false, units);
-        state.current_weather = Some(WeatherData {
-            condition: WeatherCondition::Clear,
-            temperature: 20.0,
-            precipitation: 0.0,
-            wind_speed: 5.0,
-            wind_direction: 0.0,
-            sun,
-            moon_phase: None,
-            timestamp: "n/a".to_string(),
-            attribution: String::new(),
-        });
-        let conditions = WeatherConditions {
-            sun,
-            ..WeatherConditions::default()
-        };
-
-        let ctx = FrameContext {
-            size: TerminalSize {
-                width: 80,
-                height: 24,
-            },
-            horizon_y: 18,
-            conditions: &conditions,
-            state: &state,
-            show_leaves: false,
-            chimney: None,
-        };
-
-        let y = SunSystem::resolved_sun_y(&ctx, 4);
-        assert_eq!(y, 4);
+        let mut renderer = TerminalRenderer::headless(80, 24);
+        SunSystem::new().render(&mut renderer, &ctx).unwrap();
+        let text = renderer.text();
+        let rows: Vec<&str> = text.lines().collect();
+        let widest = rows
+            .iter()
+            .position(|row| row.contains("~ -- :"))
+            .expect("the sun");
+        assert_eq!(widest, 13 + 4, "{text}");
+        assert_eq!(rows[widest].find('~'), Some(1), "{text}");
     }
 }

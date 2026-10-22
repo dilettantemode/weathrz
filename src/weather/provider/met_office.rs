@@ -146,6 +146,39 @@ impl MetOfficeProvider {
     }
 }
 
+pub fn current_response(
+    series: &MetOfficeTimeSeries,
+    parameters: &MetOfficeParameters,
+    units: &WeatherUnits,
+    attribution: &str,
+) -> Result<WeatherProviderResponse, WeatherError> {
+    Ok(WeatherProviderResponse {
+        weather_code: series.significant_weather_code,
+        temperature: series.normalize_temperature(
+            units,
+            parameters,
+            series.screen_temperature,
+            "screenTemperature",
+        )?,
+        precipitation: series.normalize_precipitation_rate(units, parameters)?,
+        wind_speed: series.normalize_wind_speeds(
+            units,
+            parameters,
+            series.wind_speed_10m,
+            "windSpeed10m",
+        )?,
+        wind_direction: series.wind_direction_from_10m as f64,
+        sun: CelestialEvents::from_bool(true),
+        moon_phase: Some(0.5),
+        humidity: Some(series.screen_relative_humidity),
+        timestamp: series.time.clone(),
+        attribution: attribution.to_string(),
+        feels_like: None,
+        uv_index: None,
+        outlook: Vec::new(),
+    })
+}
+
 #[async_trait]
 impl WeatherProvider for MetOfficeProvider {
     fn get_attribution(&self) -> &'static str {
@@ -185,27 +218,12 @@ impl WeatherProvider for MetOfficeProvider {
             // this only occurs 24 hours after the first request since thats when the provided weather data runs out
         };
 
-        let mut current_weather = WeatherProviderResponse {
-            weather_code: current_weather.significant_weather_code,
-            temperature: current_weather.normalize_temperature(
-                units,
-                &data.parameters,
-                current_weather.screen_temperature,
-                "screenTemperature",
-            )?,
-            precipitation: current_weather.normalize_precipitation_rate(units, &data.parameters)?,
-            wind_speed: current_weather.normalize_wind_speeds(
-                units,
-                &data.parameters,
-                current_weather.wind_speed_10m,
-                "windSpeed10m",
-            )?,
-            wind_direction: current_weather.wind_direction_from_10m as f64,
-            sun: CelestialEvents::from_bool(true), // Defaults - Theses will be gathered by the supplementary provider
-            moon_phase: Some(0.5),
-            timestamp: current_weather.time,
-            attribution: self.get_attribution().to_string(),
-        };
+        let mut current_weather = current_response(
+            &current_weather,
+            &data.parameters,
+            units,
+            self.get_attribution(),
+        )?;
 
         // A provider should ask something else if it doesn't have the data, the provider shouldn't have to care about
         // what supplementary data provider to use, rather if it can get the data or not, for now I will care about it
@@ -491,5 +509,18 @@ mod tests {
             .await
             .unwrap();
         println!("{response:#?}");
+    }
+
+    #[test]
+    fn current_response_passes_humidity_through() {
+        let series: MetOfficeTimeSeries = serde_json::from_str(
+            r#"{"feelsLikeTemperature":31.0,"mslp":101000,"precipitationRate":0.0,"probOfPrecipitation":10.0,"screenDewPointTemperature":22.0,"screenRelativeHumidity":78.5,"screenTemperature":30.0,"significantWeatherCode":1,"time":"2026-10-14T09:00Z","uvIndex":6,"visibility":10000,"windDirectionFrom10m":90,"windGustSpeed10m":5.0,"windSpeed10m":3.0}"#,
+        )
+        .unwrap();
+        let response =
+            current_response(&series, &Vec::new(), &WeatherUnits::metric(), "Met Office").unwrap();
+        assert_eq!(response.humidity, Some(78.5));
+        assert_eq!(response.weather_code, 1);
+        assert_eq!(response.timestamp, "2026-10-14T09:00Z");
     }
 }

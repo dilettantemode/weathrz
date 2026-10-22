@@ -1,0 +1,11 @@
+# M2 pixie flying with a wand, ejm (wing flick and star blink added)
+# https://www.ascii-art.de/ascii/pqr/pixie.txt
+{\ o
+{//\
+  \ `*
+  /\
+---
+(\ o
+{//\
+  \ `+
+  /\

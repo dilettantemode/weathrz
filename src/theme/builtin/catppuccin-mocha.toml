@@ -1,0 +1,25 @@
+# catppuccin/palette palette.json (mocha); brown, brown_dark, tan, green_dark, blue_dark derived
+name = "Catppuccin Mocha"
+
+[day]
+fg = "#cdd6f4"
+muted = "#a6adc8"
+subtle = "#6c7086"
+red = "#f38ba8"
+orange = "#fab387"
+yellow = "#f9e2af"
+green = "#a6e3a1"
+green_dark = "#698a6d"
+cyan = "#89dceb"
+blue = "#89b4fa"
+blue_dark = "#59719e"
+magenta = "#cba6f7"
+brown = "#a27763"
+brown_dark = "#725750"
+tan = "#eadec7"
+
+[night]
+green = "#769e79"
+green_dark = "#4e6356"
+brown = "#745850"
+tan = "#a39b91"

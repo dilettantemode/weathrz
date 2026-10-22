@@ -45,15 +45,8 @@ impl SmokeParticle {
         self.age < self.max_age
     }
 
-    fn get_color(&self) -> Color {
-        let life_ratio = self.age as f32 / self.max_age as f32;
-        if life_ratio < 0.3 {
-            Color::White
-        } else if life_ratio < 0.6 {
-            Color::Grey
-        } else {
-            Color::DarkGrey
-        }
+    fn color(&self, colors: &[Color; 3]) -> Color {
+        colors[smoke_tier(self.age as f32 / self.max_age as f32)]
     }
 }
 
@@ -87,7 +80,7 @@ impl ChimneySmoke {
         }
     }
 
-    pub fn render(&self, renderer: &mut TerminalRenderer) -> io::Result<()> {
+    pub fn render(&self, renderer: &mut TerminalRenderer, colors: &[Color; 3]) -> io::Result<()> {
         for particle in &self.particles {
             let x = particle.x as i16;
             let y = particle.y as i16;
@@ -100,7 +93,7 @@ impl ChimneySmoke {
                     _ => '·',
                 };
 
-                renderer.render_char(x as u16, y as u16, display_char, particle.get_color())?;
+                renderer.render_char(x as u16, y as u16, display_char, particle.color(colors))?;
             }
         }
         Ok(())
@@ -110,6 +103,16 @@ impl ChimneySmoke {
 impl Default for ChimneySmoke {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+fn smoke_tier(life_ratio: f32) -> usize {
+    if life_ratio < 0.3 {
+        0
+    } else if life_ratio < 0.6 {
+        1
+    } else {
+        2
     }
 }
 
@@ -145,6 +148,21 @@ impl AnimationSystem for ChimneySmoke {
             return Ok(());
         }
 
-        ChimneySmoke::render(self, renderer)
+        ChimneySmoke::render(self, renderer, &ctx.colors.smoke)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn smoke_tiers_follow_life_ratio() {
+        assert_eq!(smoke_tier(0.0), 0);
+        assert_eq!(smoke_tier(0.29), 0);
+        assert_eq!(smoke_tier(0.3), 1);
+        assert_eq!(smoke_tier(0.59), 1);
+        assert_eq!(smoke_tier(0.6), 2);
+        assert_eq!(smoke_tier(1.0), 2);
     }
 }

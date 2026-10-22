@@ -1,18 +1,22 @@
 [package]
-name = "weathr"
-default-run = "weathr"
+name = "weathrz"
+default-run = "weathrz"
 version = "1.4.0"
 edition = "2024"
 rust-version = "1.85.0"
 license = "GPL-3.0-or-later"
-authors = ["Dony Mulya <veirt@duck.com>"]
-description = "A terminal-based ASCII weather application with animated scenes driven by real-time weather data"
-repository = "https://github.com/veirt/weathr"
-homepage = "https://github.com/veirt/weathr"
-documentation = "https://github.com/veirt/weathr#readme"
+authors = ["Dony Mulya <veirt@duck.com>", "dilettantemode"]
+description = "A custom-flavoured fork of weathr: a terminal ASCII weather app with animated scenes driven by real-time weather data"
+repository = "https://github.com/dilettantemode/weathrz"
+homepage = "https://github.com/dilettantemode/weathrz"
+documentation = "https://github.com/dilettantemode/weathrz#readme"
 keywords = ["weather", "terminal", "ascii", "cli", "tui"]
 categories = ["command-line-utilities"]
 exclude = [".github/", "docs/"]
+
+[lib]
+name = "weathr"
+path = "src/lib.rs"
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
@@ -51,3 +55,6 @@ debug = 2
 strip = false
 lto = false
 opt-level = 2
+
+[dev-dependencies]
+insta = "1.49"

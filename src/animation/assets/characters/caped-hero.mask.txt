@@ -1,0 +1,6 @@
+# mask for caped-hero.txt
+ mmmmmmm tt
+mmmm o ggggggt
+---
+ mmmmmmm tt
+mmmm o ggggggt

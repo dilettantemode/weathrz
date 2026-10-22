@@ -1,0 +1,19 @@
+# P22 six tiny helicopters, sl (one cabin per flight)
+# https://ascii.co.uk/art/helicopter
+___.___
+  vV`---/
+%
+___.___
+ c00D`=--/
+%
+___.___
+ c[_]`=--/
+%
+___.___
+ cHHD`=--/
+%
+___.___
+-c00D`=--/
+%
+___.___
+-cC0D`=--/

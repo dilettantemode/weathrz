@@ -1,0 +1,9 @@
+# P9 small propeller plane, jgs
+# https://asciiart.website/art/4276
+  ,--.
+  \  _\_
+  _\/_|_\____.'\
+-(___.--._____(
+     \   \
+      \   \
+       `--'

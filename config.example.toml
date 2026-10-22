@@ -1,0 +1,21 @@
+# weathrz config.toml: copy to ~/.config/weathrz/config.toml
+# (macOS: ~/Library/Application Support/weathrz/, Windows: %APPDATA%\weathrz\).
+theme = "tokyo-night"
+icons = "nerd"       # or "ascii" when your font has no Nerd Font icons
+glyphs = "unicode"   # or "ascii" for a font without box lines, ✦ stars, a block moon
+language = "en"      # the only language so far
+hide = []            # e.g. ["pond", "flowers", "kite"]
+
+[location]
+auto = true          # find the place from your IP address; set false to use the lines below
+# name = "Lisbon"    # a place name instead of the coordinates (weathrz --locate <name>)
+# latitude = 38.7223
+# longitude = -9.1393
+# city = "Lisbon"
+display = "city"
+# ip_check = true    # with auto = false, offer the IP location when it is far from yours
+
+# [sky]
+# characters = []    # empty = all 9
+# specials = 12      # about one flight in 12 is a character; 0 = none
+# every = "calm"     # calm | normal | busy | seconds, e.g. 90

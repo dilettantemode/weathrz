@@ -1,0 +1,6 @@
+# P13 banner-towing plane, artist unknown
+# https://asciiart.website/art/4214
+# {text} is replaced by the banner text
+   /
+-=<=-< {text}
+   \

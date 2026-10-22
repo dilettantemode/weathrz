@@ -1,0 +1,8 @@
+# mask for ufo.txt
+       uuuuu
+ s   uuuuuguuu
+s s uuuuuuuuuuu
+---
+       uuuuu
+ s   uuuuuguuu
+s s uuuuuuuuuuu

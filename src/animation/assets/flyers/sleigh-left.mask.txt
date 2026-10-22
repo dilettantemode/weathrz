@@ -1,0 +1,6 @@
+# mask for sleigh-left.txt
+                                                    rrr  rrrr
+nnnnnnn  nnnnnnnnnnnnnnnnnnnnnnnnn           rrrrrrrrr rr  rrr
+ nn n nnnnnnnnnnnnnnnnnnnnnnnnnn n     rrrrrrrrrrrrrrrr   r
+  nn nnnnn n nnn n nnn n nnn n nnnnnnnr     rrrrrrrrrrrrrrrrrr
+         nn nn nn nn nn nn nn nn           yyyyyyyyyyyyyyyyy

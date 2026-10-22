@@ -1,0 +1,70 @@
+name = "Default"
+
+[day]
+fg = "ansi:white"
+muted = "ansi:grey"
+subtle = "ansi:dark_grey"
+red = "ansi:red"
+orange = "#ffa500"
+yellow = "ansi:yellow"
+green = "ansi:green"
+green_dark = "ansi:dark_green"
+cyan = "ansi:cyan"
+blue = "ansi:blue"
+blue_dark = "ansi:dark_blue"
+magenta = "ansi:magenta"
+brown = "#8b4513"
+brown_dark = "#654321"
+tan = "#d2b48c"
+
+[day.elements]
+roof = "ansi:dark_red"
+wood = "#d2b48c"
+door = "#8b4513"
+window = "ansi:cyan"
+trim = "ansi:dark_grey"
+path = "default"
+grass = "ansi:green"
+grass_alt = "ansi:dark_green"
+soil = "#654321"
+flowers = ["ansi:magenta", "ansi:red", "ansi:cyan", "ansi:yellow"]
+tree = "ansi:dark_green"
+fence = "ansi:white"
+mailbox = "ansi:blue"
+sun = "ansi:yellow"
+moon = "ansi:white"
+shooting_star = "ansi:white"
+birds = "ansi:yellow"
+stars = ["ansi:white", "ansi:dark_grey"]
+clouds = ["ansi:white", "ansi:grey", "ansi:dark_grey"]
+rain_near = ["ansi:cyan", "ansi:white", "ansi:cyan", "ansi:white"]
+rain_far = "ansi:dark_grey"
+rain_splash = "ansi:white"
+snow = ["ansi:white", "ansi:dark_grey"]
+fog = ["ansi:grey", "ansi:dark_grey", "#787878"]
+lightning = ["ansi:white", "ansi:yellow"]
+fireflies = ["ansi:yellow", "#c8ff64", "#96c850", "ansi:dark_grey"]
+airplane = ["ansi:cyan", "ansi:blue", "ansi:dark_grey", "ansi:grey", "ansi:white"]
+smoke = ["ansi:white", "ansi:grey", "ansi:dark_grey"]
+leaves = ["#ffa500", "#daa520", "#b8860b", "#cd5c5c", "#a0522d", "#8b4513"]
+hud = "ansi:cyan"
+hud_condition = "ansi:cyan"
+hud_temp = "ansi:yellow"
+hud_wind = "ansi:cyan"
+hud_precip = "ansi:blue"
+hud_location = "ansi:grey"
+hud_offline = "ansi:red"
+attribution = "ansi:dark_grey"
+
+[night.elements]
+roof = "ansi:dark_magenta"
+wood = "#644632"
+door = "#50280a"
+window = "ansi:yellow"
+grass = "ansi:dark_green"
+grass_alt = "#003200"
+soil = "#3c2814"
+flowers = ["ansi:dark_magenta", "ansi:dark_red", "ansi:blue", "ansi:dark_yellow"]
+tree = "#003200"
+fence = "ansi:grey"
+mailbox = "ansi:dark_blue"

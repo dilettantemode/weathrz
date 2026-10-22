@@ -1,0 +1,9 @@
+# U1 spaceship, saucer only, jgs (Joan G. Stark)
+# https://www.oocities.org/spunk1111/transp.htm
+       .---.
+ =   _/__~0_\_
+= = (_________)
+---
+       .---.
+ =   _/__~o_\_
+= = (_________)

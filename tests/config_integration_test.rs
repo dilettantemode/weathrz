@@ -204,7 +204,7 @@ fn test_config_integration_city_name_language() {
 }
 
 #[test]
-fn test_config_integration_city_name_language_defaults_to_auto() {
+fn test_config_integration_city_name_language_defaults_to_english() {
     let temp_dir = std::env::temp_dir();
     let test_config_path = temp_dir.join("weathr_city_name_lang_default.toml");
 
@@ -214,10 +214,10 @@ fn test_config_integration_city_name_language_defaults_to_auto() {
     writeln!(file, "longitude = 13.41").unwrap();
     drop(file);
 
-    let config = Config::load_from_path(&test_config_path)
-        .expect("Should default city_name_language to auto");
+    let config =
+        Config::load_from_path(&test_config_path).expect("Should default city_name_language to en");
 
-    assert_eq!(config.location.city_name_language, "auto");
+    assert_eq!(config.location.city_name_language, "en");
 
     fs::remove_file(test_config_path).ok();
 }

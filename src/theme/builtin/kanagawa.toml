@@ -1,0 +1,25 @@
+# rebelot/kanagawa.nvim lua/kanagawa/colors.lua (wave)
+name = "Kanagawa Wave"
+
+[day]
+fg = "#dcd7ba"
+muted = "#c8c093"
+subtle = "#727169"
+red = "#e46876"
+orange = "#ffa066"
+yellow = "#e6c384"
+green = "#98bb6c"
+green_dark = "#76946a"
+cyan = "#7fb4ca"
+blue = "#7e9cd8"
+blue_dark = "#2d4f67"
+magenta = "#957fb8"
+brown = "#938056"
+brown_dark = "#49443c"
+tan = "#c0a36e"
+
+[night]
+green = "#6e8454"
+green_dark = "#536550"
+brown = "#6a5e46"
+tan = "#887556"

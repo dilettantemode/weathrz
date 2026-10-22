@@ -86,26 +86,6 @@ impl Firefly {
         }
     }
 
-    fn get_color(&self) -> Color {
-        if self.brightness > 200 {
-            Color::Yellow
-        } else if self.brightness > 128 {
-            Color::Rgb {
-                r: 200,
-                g: 255,
-                b: 100,
-            }
-        } else if self.brightness > 64 {
-            Color::Rgb {
-                r: 150,
-                g: 200,
-                b: 80,
-            }
-        } else {
-            Color::DarkGrey
-        }
-    }
-
     fn is_visible(&self) -> bool {
         self.brightness > 64
     }
@@ -149,7 +129,7 @@ impl FireflySystem {
         }
     }
 
-    pub fn render(&self, renderer: &mut TerminalRenderer) -> io::Result<()> {
+    pub fn render(&self, renderer: &mut TerminalRenderer, colors: &[Color; 4]) -> io::Result<()> {
         for firefly in &self.fireflies {
             if firefly.is_visible() {
                 let x = firefly.x as i16;
@@ -164,12 +144,24 @@ impl FireflySystem {
                         x as u16,
                         y as u16,
                         firefly.get_character(),
-                        firefly.get_color(),
+                        glow_color(firefly.brightness, colors),
                     )?;
                 }
             }
         }
         Ok(())
+    }
+}
+
+fn glow_color(brightness: u8, colors: &[Color; 4]) -> Color {
+    if brightness > 200 {
+        colors[0]
+    } else if brightness > 128 {
+        colors[1]
+    } else if brightness > 64 {
+        colors[2]
+    } else {
+        colors[3]
     }
 }
 
@@ -203,8 +195,30 @@ impl AnimationSystem for FireflySystem {
     fn render(
         &mut self,
         renderer: &mut TerminalRenderer,
-        _ctx: &FrameContext<'_>,
+        ctx: &FrameContext<'_>,
     ) -> io::Result<()> {
-        FireflySystem::render(self, renderer)
+        FireflySystem::render(self, renderer, &ctx.colors.fireflies)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn glow_tiers_follow_brightness_thresholds() {
+        let tiers = [
+            Color::AnsiValue(0),
+            Color::AnsiValue(1),
+            Color::AnsiValue(2),
+            Color::AnsiValue(3),
+        ];
+        assert_eq!(glow_color(255, &tiers), tiers[0]);
+        assert_eq!(glow_color(201, &tiers), tiers[0]);
+        assert_eq!(glow_color(200, &tiers), tiers[1]);
+        assert_eq!(glow_color(129, &tiers), tiers[1]);
+        assert_eq!(glow_color(128, &tiers), tiers[2]);
+        assert_eq!(glow_color(65, &tiers), tiers[2]);
+        assert_eq!(glow_color(64, &tiers), tiers[3]);
     }
 }

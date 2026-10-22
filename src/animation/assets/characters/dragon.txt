@@ -1,0 +1,15 @@
+# D1 + D2 little dragon, wings up / wings down, ldb (Laura Brown); legs shared, tail drawn trailing
+# https://www.ascii-art.de/ascii/jkl/little_dragon.txt
+              __,,--``\\
+      _,,-''``         \\     ,
+     '----------_.------'-.___|\__
+        _.--''``    `)__   )__   @\__
+  <~~--(  .. ''---/___,,E/__,E'------`
+        `-''`''
+---
+
+                    ___       ,
+               ..-'`   `'-.___|\__
+        _.--''``    `)__   )__   @\__
+  <~~--(  .. ''---/___,,E/__,E'------`
+        `-''`''

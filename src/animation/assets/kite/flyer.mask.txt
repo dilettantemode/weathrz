@@ -1,0 +1,8 @@
+# mask for flyer.txt
+  f
+fff
+ f f
+---
+  f
+fff
+  f

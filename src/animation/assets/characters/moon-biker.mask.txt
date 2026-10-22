@@ -1,0 +1,8 @@
+# mask for moon-biker.txt
+   u   yry
+ uuuuuunnn
+uuu  uuu
+---
+   u   yry
+ uuuuuunnn
+uuu  uuu

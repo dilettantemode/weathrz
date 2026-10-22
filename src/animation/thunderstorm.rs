@@ -185,11 +185,11 @@ impl ThunderstormSystem {
         }
     }
 
-    pub fn render(&self, renderer: &mut TerminalRenderer) -> io::Result<()> {
+    pub fn render(&self, renderer: &mut TerminalRenderer, colors: &[Color; 2]) -> io::Result<()> {
         let color = if self.flash_active {
-            Color::White
+            colors[0]
         } else {
-            Color::Yellow
+            colors[1]
         };
 
         for bolt in &self.bolts {
@@ -234,8 +234,8 @@ impl AnimationSystem for ThunderstormSystem {
     fn render(
         &mut self,
         renderer: &mut TerminalRenderer,
-        _ctx: &FrameContext<'_>,
+        ctx: &FrameContext<'_>,
     ) -> io::Result<()> {
-        ThunderstormSystem::render(self, renderer)
+        ThunderstormSystem::render(self, renderer, &ctx.colors.lightning)
     }
 }

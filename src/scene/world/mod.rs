@@ -1,10 +1,13 @@
 mod decorations;
 mod ground;
-mod house;
+pub(crate) mod house;
 mod style;
+pub mod trees;
+pub mod yard;
 
+use crate::hide::HiddenDecorations;
 use crate::render::TerminalRenderer;
-use crate::scene::{ChimneyPosition, Scene, SceneContext, SceneLayout};
+use crate::scene::{ChimneyPosition, DoorAnchor, Scene, SceneContext, SceneLayout};
 use decorations::{DecorationLayout, Decorations};
 use ground::Ground;
 use house::House;
@@ -22,11 +25,11 @@ pub struct WorldScene {
 impl WorldScene {
     const GROUND_HEIGHT: u16 = 7;
 
-    pub fn new(width: u16, height: u16) -> Self {
+    pub fn new(width: u16, height: u16, hidden: HiddenDecorations) -> Self {
         Self {
             house: House,
             ground: Ground,
-            decorations: Decorations,
+            decorations: Decorations::new(hidden),
             width,
             height,
         }
@@ -51,9 +54,15 @@ impl Scene for WorldScene {
 
         SceneLayout {
             ground_y,
+            skyline_y: house_y,
             chimney_pos: Some(ChimneyPosition {
                 x: chimney_x,
                 y: house_y,
+            }),
+            door: Some(DoorAnchor {
+                x: house_x + House::DOOR_X_OFFSET,
+                width: House::DOOR_WIDTH,
+                ground_y,
             }),
             width: self.width,
             height: self.height,
@@ -68,9 +77,8 @@ impl Scene for WorldScene {
 
         self.ground.render(
             renderer,
-            self.width,
-            Self::GROUND_HEIGHT,
-            layout.ground_y,
+            (self.width, Self::GROUND_HEIGHT, layout.ground_y),
+            &ctx.garden.yard,
             &style,
         )?;
         self.house.render(renderer, house_x, house_y, &style)?;
@@ -81,10 +89,31 @@ impl Scene for WorldScene {
                 house_x,
                 house_width: self.house.width(),
                 width: self.width,
+                garden: ctx.garden,
             },
             &style,
         )?;
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn layout_exposes_the_door_and_the_roof_line() {
+        let layout = WorldScene::new(110, 32, HiddenDecorations::default()).layout();
+        assert_eq!(layout.ground_y, 25);
+        assert_eq!(layout.skyline_y, 15);
+        assert_eq!(
+            layout.door,
+            Some(DoorAnchor {
+                x: 39,
+                width: 4,
+                ground_y: 25
+            })
+        );
     }
 }

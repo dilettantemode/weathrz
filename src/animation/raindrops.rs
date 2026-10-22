@@ -17,7 +17,6 @@ struct Raindrop {
     speed_y: f32,
     speed_x: f32,
     character: char,
-    color: Color,
     z_index: u8,
 }
 
@@ -30,6 +29,7 @@ struct Splash {
 }
 
 pub struct RaindropSystem {
+    glyphs: crate::glyphs::Glyphs,
     drops: Vec<Raindrop>,
     splashes: VecDeque<Splash>,
     new_splashes: VecDeque<Splash>,
@@ -49,6 +49,7 @@ impl RaindropSystem {
         };
 
         let mut system = Self {
+            glyphs: crate::glyphs::Glyphs::Ascii,
             drops: Vec::with_capacity(drops_capacity),
             splashes: VecDeque::with_capacity(MAX_SPLASHES),
             new_splashes: VecDeque::with_capacity(20),
@@ -90,33 +91,12 @@ impl RaindropSystem {
         let x = (rng.random::<u32>() % span) as f32 - (self.terminal_width as f32 * 0.5);
         let z_index = if rng.random::<bool>() { 1 } else { 0 };
 
-        let (speed_y, chars, color) = match self.intensity {
-            RainIntensity::Drizzle => (
-                if z_index == 1 { 0.4 } else { 0.2 },
-                vec!['.', ','],
-                if z_index == 1 {
-                    Color::Cyan
-                } else {
-                    Color::DarkGrey
-                },
-            ),
-            RainIntensity::Light => (
-                if z_index == 1 { 0.7 } else { 0.4 },
-                vec!['|', ':', '.'],
-                if z_index == 1 {
-                    Color::White
-                } else {
-                    Color::DarkGrey
-                },
-            ),
+        let (speed_y, chars) = match self.intensity {
+            RainIntensity::Drizzle => (if z_index == 1 { 0.4 } else { 0.2 }, vec!['.', ',']),
+            RainIntensity::Light => (if z_index == 1 { 0.7 } else { 0.4 }, vec!['|', ':', '.']),
             RainIntensity::Heavy => (
                 if z_index == 1 { 0.9 } else { 0.6 }, // Slightly faster than Light
                 vec!['|', ':'],                       // Vertical density
-                if z_index == 1 {
-                    Color::Cyan
-                } else {
-                    Color::DarkGrey // Blue-ish background
-                },
             ),
             RainIntensity::Storm => (
                 if z_index == 1 { 1.8 } else { 1.2 },
@@ -125,11 +105,6 @@ impl RaindropSystem {
                     vec!['\\']
                 } else {
                     vec!['/']
-                },
-                if z_index == 1 {
-                    Color::White
-                } else {
-                    Color::DarkGrey
                 },
             ),
         };
@@ -142,7 +117,6 @@ impl RaindropSystem {
             speed_y: speed_y + (rng.random::<f32>() * 0.2),
             speed_x: self.wind_x + (rng.random::<f32>() * 0.1 - 0.05),
             character: chars[char_idx],
-            color,
             z_index,
         });
     }
@@ -221,7 +195,13 @@ impl RaindropSystem {
         });
     }
 
-    pub fn render(&self, renderer: &mut TerminalRenderer) -> io::Result<()> {
+    pub fn render(
+        &self,
+        renderer: &mut TerminalRenderer,
+        near: &[Color; 4],
+        far: Color,
+        splash_color: Color,
+    ) -> io::Result<()> {
         // Render drops
         for drop in &self.drops {
             let x = drop.x as i16;
@@ -242,7 +222,13 @@ impl RaindropSystem {
                 } else {
                     drop.character
                 };
-                renderer.render_char(x as u16, y as u16, ch, drop.color)?;
+                let color = if drop.z_index == 1 {
+                    near[rain_tier(self.intensity)]
+                } else {
+                    far
+                };
+                let ch = crate::glyphs::swap(self.glyphs, crate::glyphs::Element::Rain, ch);
+                renderer.render_char(x as u16, y as u16, ch, color)?;
             }
         }
 
@@ -255,11 +241,20 @@ impl RaindropSystem {
                     2 => 'O',
                     _ => ' ',
                 };
-                renderer.render_char(splash.x, splash.y, ch, Color::White)?;
+                renderer.render_char(splash.x, splash.y, ch, splash_color)?;
             }
         }
 
         Ok(())
+    }
+}
+
+fn rain_tier(intensity: RainIntensity) -> usize {
+    match intensity {
+        RainIntensity::Drizzle => 0,
+        RainIntensity::Light => 1,
+        RainIntensity::Heavy => 2,
+        RainIntensity::Storm => 3,
     }
 }
 
@@ -304,8 +299,28 @@ impl AnimationSystem for RaindropSystem {
     fn render(
         &mut self,
         renderer: &mut TerminalRenderer,
-        _ctx: &FrameContext<'_>,
+        ctx: &FrameContext<'_>,
     ) -> io::Result<()> {
-        RaindropSystem::render(self, renderer)
+        self.glyphs = ctx.state.glyphs;
+        RaindropSystem::render(
+            self,
+            renderer,
+            &ctx.colors.rain_near,
+            ctx.colors.rain_far,
+            ctx.colors.rain_splash,
+        )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn rain_intensity_selects_a_near_tier() {
+        assert_eq!(rain_tier(RainIntensity::Drizzle), 0);
+        assert_eq!(rain_tier(RainIntensity::Light), 1);
+        assert_eq!(rain_tier(RainIntensity::Heavy), 2);
+        assert_eq!(rain_tier(RainIntensity::Storm), 3);
     }
 }

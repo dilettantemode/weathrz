@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::env;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use toml::Table;
 
 use crate::error::ConfigError;
@@ -11,6 +11,8 @@ use crate::weather::types::WeatherUnits;
 pub const ENV_LATITUDE: &str = "WEATHR_LATITUDE";
 pub const ENV_LONGITUDE: &str = "WEATHR_LONGITUDE";
 pub const DEFAULT_THEME: &str = "default";
+pub const CONFIG_DIR: &str = "weathrz";
+pub const UPSTREAM_CONFIG_DIR: &str = "weathr";
 
 #[derive(Deserialize, Debug, Default, Clone, Copy, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -19,6 +21,13 @@ pub enum LocationDisplay {
     Coordinates,
     City,
     Mixed,
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub enum IconMode {
+    #[default]
+    Ascii,
+    Nerd,
 }
 
 #[derive(Deserialize, Debug, Default, Clone)]
@@ -35,10 +44,167 @@ pub struct Config {
     pub provider: HashMap<Provider, Table>,
     #[serde(default = "default_theme")]
     pub theme: String,
+    #[serde(default, deserialize_with = "one_or_many")]
+    pub hide: Vec<String>,
+    #[serde(default = "default_icons", deserialize_with = "lenient_string")]
+    pub icons: String,
+    #[serde(default, deserialize_with = "lenient_string")]
+    pub glyphs: String,
+    #[serde(default, deserialize_with = "lenient_string")]
+    pub language: String,
+    #[serde(default)]
+    pub events: EventsConfig,
+    #[serde(default)]
+    pub sky: SkyConfig,
+    #[serde(default, deserialize_with = "lenient_string")]
+    pub trees: String,
+    #[serde(default, deserialize_with = "lenient_count")]
+    pub fps: Option<i64>,
+    #[serde(default, deserialize_with = "lenient_count")]
+    pub idle_fps: Option<i64>,
 }
 
 fn default_theme() -> String {
     DEFAULT_THEME.to_string()
+}
+
+fn default_icons() -> String {
+    "ascii".to_string()
+}
+
+fn one_or_many<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    Ok(match toml::Value::deserialize(deserializer)? {
+        toml::Value::Array(items) => items.into_iter().map(value_text).collect(),
+        other => vec![value_text(other)],
+    })
+}
+
+fn lenient_string<'de, D>(deserializer: D) -> Result<String, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    Ok(value_text(toml::Value::deserialize(deserializer)?))
+}
+
+fn lenient_count<'de, D>(deserializer: D) -> Result<Option<i64>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    Ok(match toml::Value::deserialize(deserializer)? {
+        toml::Value::Integer(number) => Some(number),
+        _ => None,
+    })
+}
+
+fn value_text(value: toml::Value) -> String {
+    match value {
+        toml::Value::String(text) => text,
+        other => other.to_string(),
+    }
+}
+
+fn text_list(value: &toml::Value) -> Vec<String> {
+    match value.clone() {
+        toml::Value::Array(items) => items.into_iter().map(value_text).collect(),
+        other => vec![value_text(other)],
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct EventsConfig {
+    pub enabled: bool,
+    pub disable: Vec<String>,
+    pub country: String,
+    pub warnings: Vec<String>,
+}
+
+impl Default for EventsConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            disable: Vec::new(),
+            country: String::new(),
+            warnings: Vec::new(),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for EventsConfig {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Ok(Self::from_value(toml::Value::deserialize(deserializer)?))
+    }
+}
+
+impl EventsConfig {
+    fn from_value(value: toml::Value) -> Self {
+        let mut config = Self::default();
+        let toml::Value::Table(table) = value else {
+            config
+                .warnings
+                .push("events must be a table like [events]; using the defaults".to_string());
+            return config;
+        };
+        match table.get("enabled") {
+            None => {}
+            Some(toml::Value::Boolean(enabled)) => config.enabled = *enabled,
+            Some(other) => config.warnings.push(format!(
+                "events.enabled = {other} is not true or false; using true"
+            )),
+        }
+        if let Some(disable) = table.get("disable") {
+            config.disable = match disable.clone() {
+                toml::Value::Array(items) => items.into_iter().map(value_text).collect(),
+                other => vec![value_text(other)],
+            };
+        }
+        if let Some(country) = table.get("country") {
+            config.country = value_text(country.clone());
+        }
+        config
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct SkyConfig {
+    pub flyers: Vec<String>,
+    pub characters: Vec<String>,
+    pub every: Option<String>,
+    pub specials: Option<String>,
+    pub banner: Option<String>,
+    pub warnings: Vec<String>,
+}
+
+impl<'de> Deserialize<'de> for SkyConfig {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Ok(Self::from_value(toml::Value::deserialize(deserializer)?))
+    }
+}
+
+impl SkyConfig {
+    fn from_value(value: toml::Value) -> Self {
+        let mut config = Self::default();
+        let toml::Value::Table(table) = value else {
+            config
+                .warnings
+                .push("sky must be a table like [sky]; using the defaults".to_string());
+            return config;
+        };
+        config.flyers = table.get("flyers").map(text_list).unwrap_or_default();
+        config.characters = table.get("characters").map(text_list).unwrap_or_default();
+        config.every = table.get("every").cloned().map(value_text);
+        config.specials = table.get("specials").cloned().map(value_text);
+        config.banner = table.get("banner").cloned().map(value_text);
+        config
+    }
 }
 
 #[derive(Deserialize, Debug, Default, Clone, PartialEq, Eq, Hash, Serialize, Copy)]
@@ -61,13 +227,17 @@ pub struct Location {
     #[serde(default)]
     pub city: Option<String>,
     #[serde(default)]
+    pub name: Option<String>,
+    #[serde(default)]
     pub display: LocationDisplay,
     #[serde(default = "default_city_name_language")]
     pub city_name_language: String,
+    #[serde(default)]
+    pub ip_check: bool,
 }
 
 fn default_city_name_language() -> String {
-    "auto".to_string()
+    "en".to_string()
 }
 
 pub fn default_latitude() -> f64 {
@@ -86,8 +256,10 @@ impl Default for Location {
             auto: true,
             hide: false,
             city: None,
+            name: None,
             display: LocationDisplay::default(),
             city_name_language: default_city_name_language(),
+            ip_check: false,
         }
     }
 }
@@ -167,6 +339,47 @@ impl Config {
         }
     }
 
+    pub fn frame_rates(&self) -> ((u32, u32), Vec<String>) {
+        let mut warnings = Vec::new();
+        let mut rate = |key: &str, value: Option<i64>, default: u32, allow_off: bool| match value {
+            None => default,
+            Some(0) if allow_off => 0,
+            Some(number) if (5..=30).contains(&number) => number as u32,
+            Some(number) => {
+                let clamped = number.clamp(5, 30) as u32;
+                warnings.push(format!(
+                    "{key} = {number} is out of range (5-30); using {clamped}"
+                ));
+                clamped
+            }
+        };
+        let fps = rate("fps", self.fps, 30, false);
+        let idle_fps = rate("idle_fps", self.idle_fps, 5, true);
+        ((fps, idle_fps), warnings)
+    }
+
+    pub fn trees_setting(&self) -> Result<crate::scene::world::trees::TreesSetting, String> {
+        crate::scene::world::trees::parse_setting(&self.trees)
+    }
+
+    pub fn language(&self) -> Result<crate::text::Language, String> {
+        crate::text::parse_language(&self.language)
+    }
+
+    pub fn glyph_mode(&self) -> Result<crate::glyphs::Glyphs, String> {
+        crate::glyphs::parse(&self.glyphs)
+    }
+
+    pub fn icon_mode(&self) -> Result<IconMode, String> {
+        match self.icons.trim() {
+            "" | "ascii" => Ok(IconMode::Ascii),
+            "nerd" => Ok(IconMode::Nerd),
+            other => Err(format!(
+                "icons = \"{other}\" is not valid (use \"ascii\" or \"nerd\"); using \"ascii\""
+            )),
+        }
+    }
+
     pub fn load_from_path(path: &PathBuf) -> Result<Self, ConfigError> {
         let content = fs::read_to_string(path).map_err(|e| ConfigError::ReadError {
             path: path.display().to_string(),
@@ -197,7 +410,35 @@ impl Config {
             .or_else(|| dirs::home_dir().map(|h| h.join(".config")))
             .ok_or(ConfigError::NoConfigDir)?;
 
-        Ok(config_dir.join("weathr").join("config.toml"))
+        Ok(Self::config_in(&config_dir))
+    }
+
+    fn config_in(config_dir: &Path) -> PathBuf {
+        let own = config_dir.join(CONFIG_DIR).join("config.toml");
+        let upstream = config_dir.join(UPSTREAM_CONFIG_DIR).join("config.toml");
+        if !own.exists() && upstream.exists() {
+            upstream
+        } else {
+            own
+        }
+    }
+
+    pub fn config_path() -> Option<PathBuf> {
+        Self::get_config_path().ok()
+    }
+
+    pub fn events_path() -> Option<PathBuf> {
+        Self::get_config_path().ok().and_then(|path| {
+            path.parent()
+                .map(|dir| dir.join(crate::events::user::FILE_NAME))
+        })
+    }
+
+    pub fn themes_dir() -> Option<PathBuf> {
+        Self::get_config_path()
+            .ok()?
+            .parent()
+            .map(|dir| dir.join("themes"))
     }
 }
 
@@ -359,14 +600,17 @@ longitude = 0.0
                 auto: false,
                 hide: false,
                 city: None,
+                name: None,
                 display: LocationDisplay::default(),
                 city_name_language: "auto".to_string(),
+                ip_check: false,
             },
             hide_hud: false,
             units: WeatherUnits::default(),
             silent: false,
             provider: HashMap::new(),
             theme: "default".to_string(),
+            ..Config::default()
         };
         let result = config.validate();
         assert!(result.is_err());
@@ -382,14 +626,17 @@ longitude = 0.0
                 auto: false,
                 hide: false,
                 city: None,
+                name: None,
                 display: LocationDisplay::default(),
                 city_name_language: "auto".to_string(),
+                ip_check: false,
             },
             hide_hud: false,
             units: WeatherUnits::default(),
             silent: false,
             provider: HashMap::new(),
             theme: "default".to_string(),
+            ..Config::default()
         };
         let result = config.validate();
         assert!(result.is_err());
@@ -405,14 +652,17 @@ longitude = 0.0
                 auto: false,
                 hide: false,
                 city: None,
+                name: None,
                 display: LocationDisplay::default(),
                 city_name_language: "auto".to_string(),
+                ip_check: false,
             },
             hide_hud: false,
             units: WeatherUnits::default(),
             silent: false,
             provider: HashMap::new(),
             theme: "default".to_string(),
+            ..Config::default()
         };
         let result = config.validate();
         assert!(result.is_err());
@@ -428,14 +678,17 @@ longitude = 0.0
                 auto: false,
                 hide: false,
                 city: None,
+                name: None,
                 display: LocationDisplay::default(),
                 city_name_language: "auto".to_string(),
+                ip_check: false,
             },
             hide_hud: false,
             units: WeatherUnits::default(),
             silent: false,
             provider: HashMap::new(),
             theme: "default".to_string(),
+            ..Config::default()
         };
         let result = config.validate();
         assert!(result.is_err());
@@ -451,14 +704,17 @@ longitude = 0.0
                 auto: false,
                 hide: false,
                 city: None,
+                name: None,
                 display: LocationDisplay::default(),
                 city_name_language: "auto".to_string(),
+                ip_check: false,
             },
             hide_hud: false,
             units: WeatherUnits::default(),
             silent: false,
             provider: HashMap::new(),
             theme: "default".to_string(),
+            ..Config::default()
         };
         let result = config.validate();
         assert!(result.is_ok());
@@ -586,6 +842,30 @@ longitude = 0.0
     }
 
     #[test]
+    fn test_location_ip_check_defaults_off() {
+        let toml_content = r#"
+[location]
+latitude = -6.2088
+longitude = 106.8456
+"#;
+        let config: Config = toml::from_str(toml_content).unwrap();
+        assert!(!config.location.ip_check);
+        assert!(!Location::default().ip_check);
+    }
+
+    #[test]
+    fn test_location_ip_check_enabled() {
+        let toml_content = r#"
+[location]
+latitude = -6.2088
+longitude = 106.8456
+ip_check = true
+"#;
+        let config: Config = toml::from_str(toml_content).unwrap();
+        assert!(config.location.ip_check);
+    }
+
+    #[test]
     fn test_city_name_language_default() {
         let toml_content = r#"
 [location]
@@ -593,7 +873,7 @@ latitude = 0.0
 longitude = 0.0
 "#;
         let config: Config = toml::from_str(toml_content).unwrap();
-        assert_eq!(config.location.city_name_language, "auto");
+        assert_eq!(config.location.city_name_language, "en");
     }
 
     #[test]
@@ -732,5 +1012,191 @@ auto = false
             env::remove_var("WEATHR_LATITUDE");
             env::remove_var("WEATHR_LONGITUDE");
         }
+    }
+
+    #[test]
+    fn test_themes_dir_sits_next_to_config() {
+        let dir = Config::themes_dir().expect("a config dir exists in tests");
+        assert!(
+            dir.ends_with("weathrz/themes") || dir.ends_with("weathr/themes"),
+            "{dir:?}"
+        );
+    }
+
+    #[test]
+    fn test_config_falls_back_to_the_upstream_dir_until_its_own_exists() {
+        let root = env::temp_dir().join(format!("weathrz-config-dirs-{}", std::process::id()));
+        fs::remove_dir_all(&root).ok();
+        assert_eq!(
+            Config::config_in(&root),
+            root.join("weathrz/config.toml"),
+            "neither exists"
+        );
+        fs::create_dir_all(root.join("weathr")).unwrap();
+        fs::write(root.join("weathr/config.toml"), "").unwrap();
+        assert_eq!(Config::config_in(&root), root.join("weathr/config.toml"));
+        fs::create_dir_all(root.join("weathrz")).unwrap();
+        fs::write(root.join("weathrz/config.toml"), "").unwrap();
+        assert_eq!(Config::config_in(&root), root.join("weathrz/config.toml"));
+        fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
+    fn test_hide_accepts_a_list_or_a_single_name() {
+        let config: Config = toml::from_str("hide = [\"birds\", \"mailbox\"]").unwrap();
+        assert_eq!(config.hide, vec!["birds", "mailbox"]);
+        let config: Config =
+            toml::from_str("hide = \"birds\"\n[location]\nlatitude = 1.0\nlongitude = 2.0\n")
+                .unwrap();
+        assert_eq!(config.hide, vec!["birds"]);
+        assert_eq!(config.location.latitude, 1.0);
+        let config: Config = toml::from_str("").unwrap();
+        assert!(config.hide.is_empty());
+    }
+
+    #[test]
+    fn test_icons_mode() {
+        let config: Config =
+            toml::from_str("icons = \"nerd\"\n[location]\nlatitude = 1.0\nlongitude = 2.0\n")
+                .unwrap();
+        assert_eq!(config.icon_mode(), Ok(IconMode::Nerd));
+        assert_eq!(config.location.latitude, 1.0);
+        let config: Config =
+            toml::from_str("icons = \"emoji\"\n[location]\nlatitude = 1.0\nlongitude = 2.0\n")
+                .unwrap();
+        assert!(config.icon_mode().is_err());
+        assert_eq!(config.location.latitude, 1.0);
+        let config: Config = toml::from_str("").unwrap();
+        assert_eq!(config.icon_mode(), Ok(IconMode::Ascii));
+        assert_eq!(Config::default().icon_mode(), Ok(IconMode::Ascii));
+    }
+
+    #[test]
+    fn test_wrong_typed_new_keys_keep_the_rest_of_config() {
+        let config: Config = toml::from_str(
+            "hide = true\nicons = 1\ntheme = \"gruvbox\"\n[location]\nlatitude = 1.0\nlongitude = 2.0\n",
+        )
+        .unwrap();
+        assert_eq!(config.location.latitude, 1.0);
+        assert_eq!(config.theme, "gruvbox");
+        assert!(config.icon_mode().is_err());
+        assert_eq!(config.hide, vec!["true"]);
+        let config: Config = toml::from_str("hide = [1, \"birds\"]").unwrap();
+        assert_eq!(config.hide, vec!["1", "birds"]);
+    }
+
+    #[test]
+    fn test_events_table_defaults_to_on() {
+        let config: Config = toml::from_str("").unwrap();
+        assert_eq!(config.events, EventsConfig::default());
+        assert!(config.events.enabled);
+        assert!(Config::default().events.enabled);
+        let config: Config =
+            toml::from_str("[events]\nenabled = false\ndisable = [\"halloween\"]\n").unwrap();
+        assert!(!config.events.enabled);
+        assert_eq!(config.events.disable, vec!["halloween"]);
+        assert!(config.events.warnings.is_empty());
+        let config: Config = toml::from_str("[events]\ncountry = \"MY\"\n").unwrap();
+        assert_eq!(config.events.country, "MY");
+        assert_eq!(Config::default().events.country, "");
+    }
+
+    #[test]
+    fn test_wrong_typed_events_keep_the_rest_of_config() {
+        let config: Config = toml::from_str(
+            "[events]\nenabled = \"yes\"\ndisable = \"halloween\"\n[location]\nlatitude = 1.0\nlongitude = 2.0\n",
+        )
+        .unwrap();
+        assert_eq!(config.location.latitude, 1.0);
+        assert!(config.events.enabled);
+        assert_eq!(config.events.disable, vec!["halloween"]);
+        assert_eq!(
+            config.events.warnings.len(),
+            1,
+            "{:?}",
+            config.events.warnings
+        );
+        assert!(config.events.warnings[0].contains("events.enabled"));
+        let config: Config =
+            toml::from_str("events = 1\n[location]\nlatitude = 1.0\nlongitude = 2.0\n").unwrap();
+        assert_eq!(config.location.latitude, 1.0);
+        assert!(config.events.enabled);
+        assert_eq!(
+            config.events.warnings.len(),
+            1,
+            "{:?}",
+            config.events.warnings
+        );
+    }
+
+    #[test]
+    fn test_sky_table_reads_flyers_every_and_banner() {
+        let config: Config = toml::from_str("").unwrap();
+        assert_eq!(config.sky, SkyConfig::default());
+        let config: Config = toml::from_str(
+            "[sky]\nflyers = [\"plane\", \"heli\"]\nevery = 90\nbanner = \"Jakarta\"\n",
+        )
+        .unwrap();
+        assert_eq!(config.sky.flyers, vec!["plane", "heli"]);
+        assert_eq!(config.sky.every.as_deref(), Some("90"));
+        assert_eq!(config.sky.banner.as_deref(), Some("Jakarta"));
+        assert!(config.sky.warnings.is_empty());
+    }
+
+    #[test]
+    fn test_wrong_typed_sky_keeps_the_rest_of_config() {
+        let config: Config =
+            toml::from_str("sky = 1\n[location]\nlatitude = 1.0\nlongitude = 2.0\n").unwrap();
+        assert_eq!(config.location.latitude, 1.0);
+        assert_eq!(config.sky.warnings.len(), 1, "{:?}", config.sky.warnings);
+        let config: Config =
+            toml::from_str("[sky]\nflyers = \"plane\"\nevery = \"busy\"\n").unwrap();
+        assert_eq!(config.sky.flyers, vec!["plane"]);
+        assert_eq!(config.sky.every.as_deref(), Some("busy"));
+    }
+
+    #[test]
+    fn test_frame_rates_default_and_clamp() {
+        let config: Config =
+            toml::from_str("[location]\nlatitude = 1.0\nlongitude = 2.0\n").unwrap();
+        assert_eq!(config.frame_rates(), ((30, 5), Vec::<String>::new()));
+        let config: Config =
+            toml::from_str("fps = 15\nidle_fps = 0\n[location]\nlatitude = 1.0\nlongitude = 2.0\n")
+                .unwrap();
+        assert_eq!(config.frame_rates(), ((15, 0), Vec::<String>::new()));
+        let config: Config = toml::from_str(
+            "fps = 120\nidle_fps = 2\n[location]\nlatitude = 1.0\nlongitude = 2.0\n",
+        )
+        .unwrap();
+        let ((fps, idle), warnings) = config.frame_rates();
+        assert_eq!((fps, idle), (30, 5));
+        assert_eq!(warnings.len(), 2, "{warnings:?}");
+    }
+
+    #[test]
+    fn test_trees_default_to_auto_and_read_a_climate() {
+        use crate::scene::world::trees::{Climate, TreesSetting};
+        let config: Config =
+            toml::from_str("[location]\nlatitude = 1.0\nlongitude = 2.0\n").unwrap();
+        assert_eq!(config.trees_setting(), Ok(TreesSetting::Auto));
+        let config: Config =
+            toml::from_str("trees = \"dry\"\n[location]\nlatitude = 1.0\nlongitude = 2.0\n")
+                .unwrap();
+        assert_eq!(
+            config.trees_setting(),
+            Ok(TreesSetting::Fixed(Climate::Dry))
+        );
+    }
+
+    #[test]
+    fn test_sky_table_reads_characters_and_specials() {
+        let config: Config =
+            toml::from_str("[sky]\ncharacters = [\"ufo\", \"moon-biker\"]\nspecials = 6\n")
+                .unwrap();
+        assert_eq!(config.sky.characters, vec!["ufo", "moon-biker"]);
+        assert_eq!(config.sky.specials.as_deref(), Some("6"));
+        let config: Config = toml::from_str("[sky]\ncharacters = \"ufo\"\n").unwrap();
+        assert_eq!(config.sky.characters, vec!["ufo"]);
+        assert_eq!(config.sky.specials, None);
     }
 }
