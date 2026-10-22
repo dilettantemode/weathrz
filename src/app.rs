@@ -280,7 +280,11 @@ fn animation_wind(weather: &WeatherData) -> (f32, f32) {
 fn simulated_weather(condition: WeatherCondition, night: bool) -> WeatherData {
     WeatherData {
         condition,
-        temperature: 20.0,
+        temperature: if condition.is_snowing() || condition == WeatherCondition::FreezingRain {
+            -3.0
+        } else {
+            20.0
+        },
         precipitation: if condition.is_raining() { 2.5 } else { 0.0 },
         wind_speed: kmh_to_ms(if condition.is_thunderstorm() {
             45.0
@@ -1164,6 +1168,25 @@ mod tests {
         let storm = simulated_weather(WeatherCondition::Thunderstorm, false);
         assert!((animation_wind(&calm).0 - 10.0).abs() < 1e-3);
         assert!((animation_wind(&storm).0 - 45.0).abs() < 1e-3);
+    }
+
+    #[test]
+    fn simulated_snow_and_freezing_rain_read_below_zero() {
+        for condition in [
+            WeatherCondition::Snow,
+            WeatherCondition::SnowGrains,
+            WeatherCondition::SnowShowers,
+            WeatherCondition::FreezingRain,
+        ] {
+            assert!(
+                simulated_weather(condition, false).temperature < 0.0,
+                "{condition:?}"
+            );
+        }
+        assert_eq!(
+            simulated_weather(WeatherCondition::Rain, false).temperature,
+            20.0
+        );
     }
     use crate::render::TerminalRenderer;
     use crate::scene::overlay::SceneOverlay;
