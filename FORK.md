@@ -14,7 +14,8 @@ holiday tables, the known gaps and ideas for later.
   (`[lib]` in `Cargo.toml`) so the `use weathr::…` lines match upstream and merges stay
   small. The config folder is `weathrz`, falling back to `weathr` until it exists.
 - Left out on purpose: upstream's release, Homebrew and Docker workflows, `install.sh`,
-  the Dockerfile, `Cross.toml` and the nix files. They build and publish weathr itself.
+  the Dockerfile, `Cross.toml` and the nix files, which build and publish weathr itself,
+  and upstream's demo GIFs in `docs/`, which show weathr (weathrz's are in `docs/demo/`).
 
 ## Pull updates from weathr
 
@@ -162,6 +163,25 @@ Aircraft work the same way, in `CATALOGUE` in `src/animation/flyers/catalogue.rs
 `kind: Kind::Aircraft` and `colouring: Colouring::Airplane`. Their art lives in
 `src/animation/assets/flyers/`, and they take colours from the theme's airplane tiers
 instead of a mask.
+
+## Refresh the README demos
+
+`tools/record_demos.py` runs each scene in a pseudo-terminal at 120 × 32, saves it as an
+asciicast and renders it to `docs/demo/<scene>.gif` with
+[agg](https://github.com/asciinema/agg). It needs Linux or macOS, agg, and a folder
+holding a Nerd Font (for example JetBrainsMono from
+<https://github.com/ryanoasis/nerd-fonts/releases>):
+
+```bash
+cargo install --path . --locked --force
+cargo install --git https://github.com/asciinema/agg --tag v1.9.0 --locked
+python3 tools/record_demos.py --font-dir ~/fonts/JetBrainsMono          # every scene
+python3 tools/record_demos.py --font-dir ~/fonts/JetBrainsMono --only day,storm
+```
+
+The scenes, their places and their flags are listed at the top of the script. Each one
+runs with its own config and its place's time zone, so `--date` and event showcase
+times are local there.
 
 ## Known gaps
 

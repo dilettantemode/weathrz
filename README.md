@@ -12,40 +12,24 @@ aircraft and the odd character passing by.
 > bugs here, not upstream. For the original, see
 > [Veirt/weathr](https://github.com/Veirt/weathr).
 
-```text
-                     ✧      ·                      _  _      ·
-  2027 in 00:40 | Weather: Clear | Temp: 20.0°C | Precip: 0.0mm | Humidity: 75%
-                 ( `   )_                ✦     · (    )   `)                       ·
-                (    )    `)           .'.:.'.    `--'             ·        ✦
-           ·     \_  (___  )·          -=:o:=-               ✦      .
-                                       '.':'.'                    \   /         ✦
-                         ·                                      -=  o  =-            ✦
-    ·             ✧        ·                   ✦                  /   \  ✧
-                                            ✧                       '
-                        ··        ·                         ·
-                         ·           ·              ·                                      (
-  ·    ✦                   ~
-                    ✦     o                   ·                                         ·
-                          _   _._
-            ✦            |_|-'_~_`-._                                                      ·
-                      _.-'-_~_-~_-~-_`-._
-                  _.-'_~-_~-_-~-_~_~-_~-_`-._
-                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-           ·       |  []  []   []   []  [] |
-                   |           __    ___   |
-                 ._|  []  []  | .|  [___]  |_._._._._._._._._._._._._._._._._.
-                 |=|________()|__|()_______|=|=|=|=|=|=|=|=|=|=|=|=|=|=|=|=|=|  |--|--|--|--
-               ^^^^^^^^^^^^^^^ === ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^|  |  |  |
-//^^^^^^^^^^^^^^^^^^^/////^^^^^,^^^^*,^^^^,^^*////*,^^^^,^^^^^^^^,^^^/////^^^^^^^^^^^^*^^^^^
-      .     . ~ @   @   & ~~        . ~~ @   *   @   o  ~~        . ~~  . ~~    ~~
-      ~~  ~  ~ \|/ \|/ \|/    .       . \|/ \|/ \|/ \|/                     . ~~  ~. ~  ~~
-    ~. ~~~ ~          .   . ~~              . ~~~.~~              ~.~~   ~            ~.. ~~
-    ~    ~    ~~~     .   ~~     ~    ~~~     .   ~~      .  ~  ~     .   ~~      .  ~
-  .  ~      ~.      .  ~ ~    ~~~~    . ~  ~      ~~      ~         ~~      ~       .  ~ ~
-  ~.      ~       ~  ~    .  ~  ~  ~    .  ~      ~~      ~~    ~~    . ~~      ~.      ~  ~
-```
+![A sunny morning in Lisbon: the sun, drifting clouds, a shade tree, a pond, flower beds and a kite flyer by the fence](docs/demo/day.gif)
 
-_New Year's Eve in Lisbon, 23:20, `--simulate clear --night`, 92 × 30, `glyphs = "unicode"`._
+<table>
+<tr>
+<td width="50%"><img src="docs/demo/storm.gif" alt="A thunderstorm at night with rain across the scene"><br><sub>Thunderstorm at night · <code>--simulate thunderstorm --night</code></sub></td>
+<td width="50%"><img src="docs/demo/snow.gif" alt="Snow falling on a house in Oslo with a fir tree, at minus three degrees"><br><sub>Snow in Oslo · <code>--simulate snow</code></sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/demo/new-year.gif" alt="New Year's Eve with a countdown in the bar and fireworks over the house"><br><sub>New Year's Eve · <code>--event new_year</code></sub></td>
+<td width="50%"><img src="docs/demo/halloween.gif" alt="Halloween night with pumpkins by the door, bats and a witch on a broom"><br><sub>Halloween · <code>--event halloween</code></sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/demo/diwali.gif" alt="Diwali night in New Delhi with lights along the eave and fence and lamps by the door"><br><sub>Diwali in New Delhi · <code>--event in:diwali</code></sub></td>
+<td width="50%"><img src="docs/demo/childrens-day.gif" alt="Children's Day in Tokyo with koinobori carp streamers on a pole by the fence"><br><sub>Children's Day in Tokyo · <code>--event jp:childrens_day</code></sub></td>
+</tr>
+</table>
+
+<sub>120 × 32, the Tokyo Night theme and a Nerd Font; recorded with `tools/record_demos.py`.</sub>
 
 ## Contents
 
