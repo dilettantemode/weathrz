@@ -193,7 +193,6 @@ Small things left for later:
   the scene, as they would be.
 - The sun's compass direction and the providers' sunrise and sunset times are computed
   or fetched but not used yet.
-- On panes 12–16 rows tall the tallest trees sink their trunks into the soil rows.
 - Past 2028 the moon days are calculated (tentative, about a day either way) until the
   tables get the next year's dates (see "Update the holiday dates" below); Hindu
   festivals, India's Buddha Purnima and announced days (cuti bersama, Russia's New

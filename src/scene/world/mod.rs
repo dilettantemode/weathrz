@@ -24,6 +24,14 @@ pub struct WorldScene {
 
 impl WorldScene {
     const GROUND_HEIGHT: u16 = 7;
+    const MIN_GROUND_HEIGHT: u16 = 2;
+
+    pub fn ground_y(height: u16) -> u16 {
+        let soil = height
+            .saturating_sub(House::HEIGHT)
+            .clamp(Self::MIN_GROUND_HEIGHT, Self::GROUND_HEIGHT);
+        height.saturating_sub(soil)
+    }
 
     pub fn new(width: u16, height: u16, hidden: HiddenDecorations) -> Self {
         Self {
@@ -47,7 +55,7 @@ impl Scene for WorldScene {
     }
 
     fn layout(&self) -> SceneLayout {
-        let ground_y = self.height.saturating_sub(Self::GROUND_HEIGHT);
+        let ground_y = Self::ground_y(self.height);
         let house_x = (self.width / 2).saturating_sub(House::WIDTH / 2);
         let house_y = ground_y.saturating_sub(House::HEIGHT);
         let chimney_x = house_x + House::CHIMNEY_X_OFFSET;
@@ -77,7 +85,7 @@ impl Scene for WorldScene {
 
         self.ground.render(
             renderer,
-            (self.width, Self::GROUND_HEIGHT, layout.ground_y),
+            (self.width, self.height - layout.ground_y, layout.ground_y),
             &ctx.garden.yard,
             &style,
         )?;
@@ -115,5 +123,19 @@ mod tests {
                 ground_y: 25
             })
         );
+    }
+
+    #[test]
+    fn short_panes_give_up_soil_before_the_house_sinks() {
+        assert_eq!(WorldScene::ground_y(32), 25);
+        assert_eq!(WorldScene::ground_y(17), 10);
+        for height in 12..17 {
+            let ground_y = WorldScene::ground_y(height);
+            assert_eq!(ground_y, House::HEIGHT, "{height}");
+            assert!(
+                height - ground_y >= WorldScene::MIN_GROUND_HEIGHT,
+                "{height}"
+            );
+        }
     }
 }

@@ -19,7 +19,7 @@ struct FogWisp {
 
 impl FogWisp {
     fn new(terminal_width: u16, terminal_height: u16, rng: &mut (impl Rng + ?Sized)) -> Self {
-        let ground_level = terminal_height.saturating_sub(7);
+        let ground_level = crate::scene::world::WorldScene::ground_y(terminal_height);
         let fog_zone_top = ground_level.saturating_sub(15);
 
         let x = rng.random::<f32>() * terminal_width as f32;
