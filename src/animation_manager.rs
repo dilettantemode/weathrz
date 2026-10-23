@@ -1,15 +1,32 @@
 use crate::animation::{
     AnimationSystem, ChimneyPosition, FrameCommands, FrameContext, RenderLayer, TerminalSize, Wind,
-    birds::BirdSystem, chimney::ChimneySmoke, christmas::lights::ChristmasLights,
-    clouds::CloudSystem, fireflies::FireflySystem, fireworks::FireworksSystem,
-    flyers::settings::FlyerSettings, flyers::system::FlyerSystem, fog::FogSystem,
-    halloween::bats::HalloweenBats, halloween::pumpkins::HalloweenPumpkins,
-    holidays::bonfire::HolidayBonfire, holidays::bunting::HolidayBunting,
-    holidays::flagpole::HolidayFlag, holidays::ground::HolidayGround,
-    holidays::hangings::HolidayHangings, holidays::holi::HoliColours,
-    holidays::lanterns::WaisakLanterns, holidays::mudik::MudikCars, kite::KiteSystem,
-    leaves::FallingLeaves, moon::MoonSystem, raindrops::RaindropSystem, snow::SnowSystem,
-    stars::StarSystem, sunny::SunSystem, thunderstorm::ThunderstormSystem,
+    birds::BirdSystem,
+    chimney::ChimneySmoke,
+    christmas::lights::ChristmasLights,
+    clouds::CloudSystem,
+    fireflies::FireflySystem,
+    fireworks::FireworksSystem,
+    flyers::settings::FlyerSettings,
+    flyers::system::FlyerSystem,
+    fog::FogSystem,
+    halloween::bats::HalloweenBats,
+    halloween::pumpkins::HalloweenPumpkins,
+    holidays::bonfire::HolidayBonfire,
+    holidays::bunting::HolidayBunting,
+    holidays::flagpole::HolidayFlag,
+    holidays::ground::HolidayGround,
+    holidays::hangings::HolidayHangings,
+    holidays::holi::HoliColours,
+    holidays::lanterns::WaisakLanterns,
+    holidays::mudik::MudikCars,
+    kite::KiteSystem,
+    leaves::FallingLeaves,
+    moon::MoonSystem,
+    raindrops::{Depth, RaindropSystem},
+    snow::SnowSystem,
+    stars::StarSystem,
+    sunny::SunSystem,
+    thunderstorm::ThunderstormSystem,
 };
 use crate::app_state::AppState;
 use crate::events::ActiveEvents;
@@ -78,6 +95,12 @@ impl AnimationManager {
             Box::new(BirdSystem::new(term_width, term_height)),
             Box::new(SunSystem::new()),
             Box::new(CloudSystem::new(term_width, term_height)),
+            Box::new(RaindropSystem::new(
+                Depth::Far,
+                term_width,
+                term_height,
+                RainIntensity::Light,
+            )),
             Box::new(FireworksSystem::new()),
             Box::new(WaisakLanterns::new()),
             Box::new(FlyerSystem::new(flyer_settings(hidden, flyers))),
@@ -96,6 +119,7 @@ impl AnimationManager {
             Box::new(KiteSystem::new(kite_preview)),
             // Foreground
             Box::new(RaindropSystem::new(
+                Depth::Near,
                 term_width,
                 term_height,
                 RainIntensity::Light,
@@ -258,7 +282,7 @@ mod tests {
         assert!(!ids.contains(&"birds"));
         assert!(!ids.contains(&"airplanes"));
         assert!(ids.contains(&"rain"));
-        assert_eq!(ids.len(), 24);
+        assert_eq!(ids.len(), 25);
     }
 
     #[test]
@@ -271,7 +295,7 @@ mod tests {
             &FlyerSettings::default(),
             false,
         );
-        assert_eq!(manager.systems.len(), 26);
+        assert_eq!(manager.systems.len(), 27);
     }
 
     #[test]
@@ -320,6 +344,6 @@ mod tests {
         let ids: Vec<&str> = manager.systems.iter().map(|s| s.id()).collect();
         assert!(!ids.contains(&"kite"));
         assert!(ids.contains(&"airplanes"));
-        assert_eq!(ids.len(), 25);
+        assert_eq!(ids.len(), 26);
     }
 }

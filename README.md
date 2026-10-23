@@ -67,6 +67,10 @@ holiday tables): [FORK.md](FORK.md).
   two flower beds in the front yard.
 - A real sun and moon: they rise and set at their own times for your location, and the
   moon's terminator is cut at the angle you see it (a boat near the equator).
+- Rain in two depths: far rain falls behind the house and splashes on the roof and the
+  grass line, near rain falls in front and puddles across the yard, and heavy rain
+  sweeps through in sheets. Lightning grows down from the clouds over a few frames and
+  often flickers twice. An optional painted sky (`[sky] painted = true`) sits behind it all.
 - A Unicode sky by default (box-line rain, ✦ stars, ❄ snow, ░ fog, solid flags and a
   block-drawn moon; `glyphs = "ascii"` turns it off); correct 256- and 16-colour
   fallbacks; synchronized frames.

@@ -21,6 +21,20 @@ impl House {
         Self::WIDTH
     }
 
+    pub fn roof_rows() -> Vec<Option<u16>> {
+        let roof: Vec<&str> = HOUSE_ASCII
+            .lines()
+            .take(usize::from(Self::EAVE_ROW) + 1)
+            .collect();
+        (0..usize::from(Self::WIDTH))
+            .map(|column| {
+                roof.iter()
+                    .position(|line| line.chars().nth(column).is_some_and(|ch| ch != ' '))
+                    .map(|row| row as u16)
+            })
+            .collect()
+    }
+
     pub fn light_spots(x: u16, y: u16) -> Vec<(u16, u16)> {
         let mut spots = Vec::new();
         for (row, line) in HOUSE_ASCII.lines().enumerate() {
@@ -187,6 +201,16 @@ mod tests {
                 b: 24
             }
         );
+    }
+
+    #[test]
+    fn the_roof_line_runs_from_the_eave_ends_up_to_the_chimney() {
+        let roof = House::roof_rows();
+        assert_eq!(roof.len(), usize::from(House::WIDTH));
+        assert_eq!(roof[0], None);
+        assert_eq!(roof[3], Some(House::EAVE_ROW));
+        assert_eq!(roof[12], Some(0), "the chimney cap");
+        assert_eq!(roof[40], None, "over the veranda the rain reaches the yard");
     }
 
     #[test]

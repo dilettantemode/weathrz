@@ -237,7 +237,7 @@ impl TerminalRenderer {
     pub fn mark_solid(&mut self, x: u16, y: u16) {
         if let Some(idx) = self.index(x, y) {
             self.solid[idx] = true;
-            self.buffer[idx].background = Color::Reset;
+            self.buffer[idx] = Cell::default();
         }
     }
 
