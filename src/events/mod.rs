@@ -1077,7 +1077,7 @@ pub fn format_listing(now: NaiveDateTime, settings: &EventSettings) -> String {
     let width = shown.iter().map(|def| def.id.len()).max().unwrap_or(0) + 1;
     let mut upcoming: Vec<(&EventDef, Occurrence)> = shown
         .into_iter()
-        .filter_map(|def| Some((def, next_occurrence(def, now)?)))
+        .filter_map(|def| Some((def, occurrence_at(def, now, settings.place)?)))
         .collect();
     upcoming.sort_by_key(|(_, occurrence)| occurrence.start);
     let mut lines: Vec<String> = vec![country_line(settings)];
@@ -1458,6 +1458,29 @@ mod tests {
         assert!(imlek.contains(IMLEK));
         let unplaced = resolve(at("2027-03-09T18:00"), &EventSettings::in_country("ID"));
         assert!(unplaced.contains(IDULFITRI));
+    }
+
+    #[test]
+    fn the_listing_shows_islamic_eves_at_the_real_sunset() {
+        let place = Place {
+            latitude: -6.2088,
+            longitude: 106.8456,
+            utc_offset_secs: Some(7 * 3600),
+        };
+        let mut jakarta = EventSettings::in_country("ID");
+        jakarta.place = Some(place);
+        let sunset = local_sunset(place, NaiveDate::from_ymd_opt(2027, 3, 9).unwrap()).unwrap();
+        let listing = format_listing(at("2027-03-01T12:00"), &jakarta);
+        let idulfitri = listing
+            .lines()
+            .find(|line| line.starts_with(IDULFITRI))
+            .expect("idulfitri is listed");
+        assert!(
+            idulfitri.contains(&sunset.format("%Y-%m-%d %H:%M").to_string()),
+            "{idulfitri}"
+        );
+        let unplaced = format_listing(at("2027-03-01T12:00"), &EventSettings::in_country("ID"));
+        assert!(unplaced.contains("2027-03-09 18:00"), "{unplaced}");
     }
 
     #[test]
