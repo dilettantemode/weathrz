@@ -296,7 +296,8 @@ country = "auto"        # or a code below, or "none" for the yearly events only
 | `US` | United States | 10 | the flag and fireworks on the Fourth of July, Easter eggs |
 
 Flags fly from a pole by the garden fence, ripple with the wind and stream downwind of
-the pole (they hang still in calm air). Bonfires burn in the front yard after dark: on
+the pole; in calm air (under 3 km/h) they hang limp beside it, and the koinobori carp
+hang head up. Bonfires burn in the front yard after dark: on
 the eve for Meskel and Holika Dahan, from 17:00 on Bonfire Night; rain puts them out.
 
 Event ids carry the country: `in:diwali`, `us:thanksgiving`, `jp:childrens_day`. A bare

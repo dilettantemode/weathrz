@@ -191,8 +191,6 @@ Small things left for later:
   the roofline; a low moon keeps it home, and so do small panes.
 - A low moon (and the sun) can sit behind the house or the trees: they are drawn behind
   the scene, as they would be.
-- `--list-events` prints 18:00 for Islamic eves; the running app uses the real sunset.
-- In calm air flags and koinobori hang straight out without a ripple instead of drooping.
 - The sun's compass direction and the providers' sunrise and sunset times are computed
   or fetched but not used yet.
 - On panes 12–16 rows tall the tallest trees sink their trunks into the soil rows.

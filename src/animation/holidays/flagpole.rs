@@ -17,6 +17,8 @@ const RIPPLE_PERIOD: i32 = 5;
 const STILL_KMH: f32 = 3.0;
 const BREEZE_KMH: f32 = 15.0;
 const GALE_KMH: f32 = 30.0;
+const LIMP_COLUMNS: usize = 3;
+const LIMP_SAG_ROWS: usize = 2;
 const PINWHEEL: [char; 4] = ['*', '+', 'x', '+'];
 const PINWHEEL_FRAMES: u64 = 4;
 
@@ -182,6 +184,47 @@ fn rippled(ch: char, fish: bool) -> char {
     }
 }
 
+fn hung_flag(cloth: &Cloth) -> Vec<(i32, i32, char, char)> {
+    let rows = cloth.mask.len();
+    let deep = rows + LIMP_SAG_ROWS;
+    let mut out = Vec::new();
+    for dy in 0..deep {
+        let letters: Vec<char> = cloth.mask[dy * rows / deep].chars().collect();
+        let hem = dy + 1 == deep;
+        let columns = LIMP_COLUMNS - usize::from(hem);
+        for column in 0..columns {
+            let letter = letters[(2 * column + 1) * letters.len() / (2 * LIMP_COLUMNS)];
+            let ch = match (hem, column + 1 == columns) {
+                (true, true) => '\'',
+                (false, true) => ')',
+                _ => '=',
+            };
+            out.push((column as i32, dy as i32, ch, letter));
+        }
+    }
+    out
+}
+
+fn hung_carp(cloth: &Cloth) -> Vec<(i32, i32, char, char)> {
+    let mut out = Vec::new();
+    for (strand, letters) in cloth.mask.iter().enumerate() {
+        let letters: Vec<char> = letters.chars().collect();
+        let streamer = strand == 0;
+        let length = letters.len() / 2 - 1;
+        for dy in 0..length {
+            let (ch, letter) = match (streamer, dy) {
+                (true, _) => ('~', letters[dy * 2]),
+                (false, 0) => ('o', letters[0]),
+                (false, _) if dy + 1 == length => ('v', letters[2]),
+                _ => ('}', letters[2]),
+            };
+            let column = if streamer { 0 } else { 2 * strand - 1 };
+            out.push((column as i32, (strand + dy) as i32, ch, letter));
+        }
+    }
+    out
+}
+
 pub(crate) fn pole_x(door: DoorAnchor) -> i32 {
     i32::from(door.x) - i32::from(House::DOOR_X_OFFSET) + i32::from(House::WIDTH) + 2
 }
@@ -213,6 +256,13 @@ pub(crate) fn placed(
     out.extend(place(x, top - 1, finial.0, finial.1, width, height));
     for y in top..ground {
         out.extend(place(x, y, '|', 'u', width, height));
+    }
+    if wind.speed_kmh < STILL_KMH {
+        let hung = if fish { hung_carp } else { hung_flag };
+        for (dx, dy, ch, letter) in hung(cloth) {
+            out.extend(place(x + 1 + dx, top + dy, ch, letter, width, height));
+        }
+        return out;
     }
     let left = flies_left(wind);
     let phase = ripple_step_frames(wind.speed_kmh).map(|step| (frame / step) as i32);
@@ -475,5 +525,59 @@ mod tests {
     fn a_narrow_pane_clips_instead_of_wrapping() {
         let cells = placed(Banner::Koinobori, door(), 90, 32, wind(20.0, 270.0), 0);
         assert!(cells.iter().all(|cell| cell.x < 90));
+    }
+
+    #[test]
+    fn in_calm_air_the_flag_hangs_beside_the_pole() {
+        let cloth = flag_of("ID").unwrap();
+        let x = pole_x(door());
+        let top = i32::from(door().ground_y) - FLAG_POLE_ROWS;
+        let calm = placed(Banner::Flag(cloth), door(), 200, 32, wind(1.0, 270.0), 0);
+        let hanging: Vec<&Placed> = calm.iter().filter(|cell| cell.letter != 'u').collect();
+        let reach = hanging.iter().map(|cell| i32::from(cell.x) - x).max();
+        let depth = hanging.iter().map(|cell| i32::from(cell.y) - top).max();
+        assert_eq!(reach, Some(LIMP_COLUMNS as i32));
+        assert_eq!(depth, Some((cloth.art.len() + LIMP_SAG_ROWS) as i32 - 1));
+        let rows_of = |letter: char| -> Vec<i32> {
+            hanging
+                .iter()
+                .filter(|cell| cell.letter == letter)
+                .map(|cell| i32::from(cell.y))
+                .collect()
+        };
+        let (reds, whites) = (rows_of('r'), rows_of('f'));
+        assert!(
+            !reds.is_empty() && reds.iter().max() < whites.iter().min(),
+            "red stays above white"
+        );
+        let breeze = placed(
+            Banner::Flag(cloth),
+            door(),
+            200,
+            32,
+            wind(STILL_KMH, 270.0),
+            0,
+        );
+        assert!(
+            breeze
+                .iter()
+                .any(|cell| i32::from(cell.x) - x > LIMP_COLUMNS as i32)
+        );
+    }
+
+    #[test]
+    fn in_calm_air_the_carp_hang_head_up() {
+        let x = pole_x(door());
+        let calm = placed(Banner::Koinobori, door(), 200, 32, wind(0.0, 270.0), 0);
+        assert!(!calm.iter().any(|cell| cell.ch == '<' || cell.ch == '>'));
+        for column in [2, 4, 6] {
+            let mut strand: Vec<&Placed> = calm
+                .iter()
+                .filter(|cell| i32::from(cell.x) == x + column)
+                .collect();
+            strand.sort_by_key(|cell| cell.y);
+            let shape: String = strand.iter().map(|cell| cell.ch).collect();
+            assert!(shape.starts_with('o') && shape.ends_with('v'), "{shape}");
+        }
     }
 }
