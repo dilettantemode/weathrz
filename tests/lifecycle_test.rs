@@ -59,11 +59,19 @@ fn run_in_pty_and_signal(signal: &str) -> Option<(Option<i32>, String)> {
     )
 }
 
+fn tail(output: &str) -> &str {
+    let mut start = output.len().saturating_sub(300);
+    while !output.is_char_boundary(start) {
+        start += 1;
+    }
+    &output[start..]
+}
+
 fn assert_terminal_restored(signal: &str) {
     let Some((status, output)) = run_in_pty_and_signal(signal) else {
         return;
     };
-    let tail = &output[output.len().saturating_sub(300)..];
+    let tail = tail(&output);
     assert_eq!(status, Some(0), "SIG{signal}: no clean exit: {tail:?}");
     let entered = output
         .rfind(ENTER_ALTERNATE_SCREEN)
@@ -106,7 +114,7 @@ fn waits_for_a_pane_that_starts_at_zero_size() {
     ) else {
         return;
     };
-    let tail = &output[output.len().saturating_sub(300)..];
+    let tail = tail(&output);
     assert!(
         output.contains(ENTER_ALTERNATE_SCREEN),
         "never started: {tail:?}"
