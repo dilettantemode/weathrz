@@ -97,7 +97,7 @@ You need Rust 1.85 or newer ([rustup](https://rustup.rs/)) and a C toolchain wit
 `sudo apt install build-essential cmake` or `sudo dnf install gcc gcc-c++ make cmake`.
 
 ```bash
-cargo install --git https://github.com/dilettantemode/weathrz --locked
+cargo install --git https://github.com/dilettantemode/weathrz --locked --bin weathrz
 ```
 
 or from a clone:
@@ -105,8 +105,10 @@ or from a clone:
 ```bash
 git clone https://github.com/dilettantemode/weathrz.git
 cd weathrz
-cargo install --path . --locked
+cargo install --path . --locked --bin weathrz
 ```
+
+(`--bin weathrz` leaves out `generate-manpage`, a build helper you don't need on your PATH.)
 
 `cargo test --locked` runs the test suite. For the Nerd Font icons in the bar, install
 a [Nerd Font](https://www.nerdfonts.com/font-downloads) and pick it in your terminal;

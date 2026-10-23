@@ -6,7 +6,7 @@ use crate::weather::types::{HourPoint, WeatherData, WeatherUnits};
 use crate::weather::units::{
     format_precipitation, format_temperature, format_wind_speed, ms_to_kmh,
 };
-use chrono::{DateTime, Duration, NaiveDateTime, NaiveTime, Utc};
+use chrono::{DateTime, Datelike, Duration, NaiveDateTime, NaiveTime, Utc};
 use serde::Serialize;
 
 const HOURS_SHOWN: usize = 6;
@@ -22,17 +22,57 @@ pub struct Facts<'a> {
     pub now: NaiveDateTime,
 }
 
+type SunTimesKey = (i32, u64, u64, i64);
+type RiseAndSet = Option<(NaiveTime, NaiveTime)>;
+
+static LAST_SUN_TIMES: std::sync::Mutex<Option<(SunTimesKey, RiseAndSet)>> =
+    std::sync::Mutex::new(None);
+
 pub fn sun_times(
     (latitude, longitude): (f64, f64),
     now: NaiveDateTime,
     now_utc: DateTime<Utc>,
 ) -> Option<(NaiveTime, NaiveTime)> {
-    let offset = now - now_utc.naive_utc();
+    let offset = (now - now_utc.naive_utc()).num_minutes();
+    let key = (
+        now.date().num_days_from_ce(),
+        latitude.to_bits(),
+        longitude.to_bits(),
+        offset,
+    );
+    if let Ok(last) = LAST_SUN_TIMES.lock()
+        && let Some((known, times)) = *last
+        && known == key
+    {
+        return times;
+    }
+    let times = work_out_sun_times((latitude, longitude), now, Duration::minutes(offset));
+    if let Ok(mut last) = LAST_SUN_TIMES.lock() {
+        *last = Some((key, times));
+    }
+    times
+}
+
+fn work_out_sun_times(
+    (latitude, longitude): (f64, f64),
+    now: NaiveDateTime,
+    offset: Duration,
+) -> Option<(NaiveTime, NaiveTime)> {
     let midnight = now.date().and_hms_opt(0, 0, 0)?;
     let rise = crate::astro::sunrise_after(latitude, longitude, (midnight - offset).and_utc())?;
     let set = crate::astro::sunset_after(latitude, longitude, rise)?;
     let local = |at: DateTime<Utc>| (at.naive_utc() + offset).time();
     Some((local(rise), local(set)))
+}
+
+pub fn local_now(
+    weather: &WeatherData,
+    now: NaiveDateTime,
+    now_utc: DateTime<Utc>,
+) -> NaiveDateTime {
+    weather.sun.utc_offset_secs.map_or(now, |seconds| {
+        now_utc.naive_utc() + Duration::seconds(i64::from(seconds))
+    })
 }
 
 pub fn provider_or_computed(
@@ -45,7 +85,7 @@ pub fn provider_or_computed(
         .sun
         .rise
         .zip(weather.sun.set)
-        .or_else(|| sun_times(place, now, now_utc))
+        .or_else(|| sun_times(place, local_now(weather, now, now_utc), now_utc))
 }
 
 pub fn compass(degrees: f64) -> &'static str {
@@ -422,6 +462,30 @@ mod tests {
             (winter - Duration::hours(1)).and_utc(),
         );
         assert_eq!(polar, None, "no sunrise in Svalbard's polar night");
+    }
+
+    #[test]
+    fn a_reading_in_another_zone_keeps_its_own_clock() {
+        let mut weather = reading();
+        weather.sun = CelestialEvents {
+            utc_offset_secs: Some(7 * 3600),
+            ..CelestialEvents::from_bool(true)
+        };
+        let london_now = at("2026-10-23T08:20");
+        let utc = (london_now - Duration::hours(1)).and_utc();
+        assert_eq!(local_now(&weather, london_now, utc), at("2026-10-23T14:20"));
+        let (rise, set) =
+            provider_or_computed(&weather, (-6.2088, 106.8456), london_now, utc).unwrap();
+        assert_eq!(
+            rise.format("%H").to_string(),
+            "05",
+            "Jakarta's sunrise in WIB"
+        );
+        assert_eq!(set.format("%H").to_string(), "17");
+        let hours = hours_ahead(&weather, local_now(&weather, london_now, utc));
+        assert_eq!(hours[0].0, at("2026-10-23T14:00"));
+        let unzoned = reading();
+        assert_eq!(local_now(&unzoned, london_now, utc), london_now);
     }
 
     #[test]

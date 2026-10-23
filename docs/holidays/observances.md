@@ -2710,10 +2710,10 @@ Notes:
 
 | Country | id | Date rule | Window |
 |---|---|---|---|
-| ID | `g30s_remembrance` | `fixed(9,30)` | all day 30 Sep; full mast again 06:00 local on 1 Oct |
+| ID | `g30s_remembrance` | `fixed(9,30)` | all day 30 Sep; full mast again 06:00 local on 1 Oct (the app raises it at midnight) |
 | US | `fallen_firefighters_memorial` | `nth_weekday(5, sun, 1)` (tentative 2027–28) | all day; federal buildings |
 | US | `peace_officers_memorial_day` | `listed`: 15 May, none in 2027 | all day; skipped when 15 May is Armed Forces Day |
-| US | `memorial_day_half_mast` | `last_weekday(5, mon)` | sunrise to 12:00, then full staff |
+| US | `memorial_day_half_mast` | `last_weekday(5, mon)` | sunrise to 12:00, then full staff (the app: 00:00 to 12:00) |
 | US | `patriot_day` | `fixed(9,11)` | all day |
 | US | `pearl_harbor_remembrance_day` | `fixed(12,7)` | all day |
 | CN | `national_memorial_day` | `fixed(12,13)` | from the 08:00 flag ceremony; ceremony main venue only |

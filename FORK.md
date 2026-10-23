@@ -147,7 +147,7 @@ rebuild. The example below adds a paper crane with the id `paper-crane`.
    comic characters: draw your own rather than someone else's.
    For night pieces, add `--night`, or `--date 2026-10-26T21:00` for a full moon.
 
-6. **Install:** `cargo install --path . --locked --force`.
+6. **Install:** `cargo install --path . --locked --force --bin weathrz`.
 
 About one flight in 12 is a character. To see yours more often, or to pick which
 characters fly, set this in `~/.config/weathrz/config.toml`:
@@ -173,7 +173,7 @@ holding a Nerd Font (for example JetBrainsMono from
 <https://github.com/ryanoasis/nerd-fonts/releases>):
 
 ```bash
-cargo install --path . --locked --force
+cargo install --path . --locked --force --bin weathrz
 cargo install --git https://github.com/asciinema/agg --tag v1.9.0 --locked
 python3 tools/record_demos.py --font-dir ~/fonts/JetBrainsMono          # every scene
 python3 tools/record_demos.py --font-dir ~/fonts/JetBrainsMono --only day,storm
@@ -204,9 +204,9 @@ Small things left for later:
   the 24 get the yearly events only.
 - Substitute days off (US observed days, UK substitute bank holidays, Japan's furikae
   kyujitsu, Korea's daech'e gonghyuil) are not shown: each holiday shows on its own date.
-- The details card works out sunrise and sunset in this machine's time zone when the
-  provider sends none (Open-Meteo never does), while the hourly rows come in the
-  location's own zone; on a machine set to another zone the two disagree.
+- The details card keeps the location's own clock when the provider sends its UTC offset
+  (Open-Meteo does); with the Met Office provider, or a reading cached before 23 Oct 2026,
+  it falls back to this machine's zone.
 - With `icons = "ascii"` on panes under about 90 columns, the bar drops a long holiday
   greeting to keep the weather; with Nerd icons it shrinks to the icon.
 - Each flyer's hours are set by its `when` field in `src/animation/flyers/characters.rs`
@@ -227,7 +227,7 @@ estimates; when a list comes out, replace that country's `dates_2028` and set
 2. Run `python3 tools/world_holidays.py` (it rewrites `src/events/world.rs` and runs
    rustfmt), then `cargo test --locked`. The test
    `every_researched_world_date_falls_inside_its_window` checks every listed date.
-3. Rebuild and install (`cargo install --path . --locked --force`).
+3. Rebuild and install (`cargo install --path . --locked --force --bin weathrz`).
 
 ## Ideas
 

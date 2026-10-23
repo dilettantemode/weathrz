@@ -302,6 +302,8 @@ pub struct CelestialEvents {
     pub upper_transit: Option<NaiveTime>,
     pub set: Option<NaiveTime>,
     pub end_twilight: Option<NaiveTime>,
+    #[serde(default)]
+    pub utc_offset_secs: Option<i32>,
 }
 
 impl CelestialEvents {
@@ -313,6 +315,7 @@ impl CelestialEvents {
             upper_transit: None,
             set: None,
             end_twilight: None,
+            utc_offset_secs: None,
         }
     }
 
@@ -324,6 +327,7 @@ impl CelestialEvents {
             upper_transit: None,
             set: None,
             end_twilight: None,
+            utc_offset_secs: None,
         }
     }
 }

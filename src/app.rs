@@ -528,7 +528,7 @@ impl App {
                 self.clock.now_utc(),
             ),
             moon_phase: Some(astro::moon_phase(self.clock.now_utc())),
-            now: self.clock.now(),
+            now: crate::details::local_now(weather, self.clock.now(), self.clock.now_utc()),
         }))
     }
 

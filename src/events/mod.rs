@@ -1147,14 +1147,17 @@ fn listing_lines(
         .collect()
 }
 
-fn sources_for(code: &str) -> &'static str {
-    if code == "ID" {
-        return SOURCES;
-    }
-    world::SOURCES
+fn sources_for(code: &str) -> String {
+    let researched = world::SOURCES
         .iter()
         .find(|(country, _)| *country == code)
-        .map_or("see README", |(_, sources)| *sources)
+        .map(|(_, sources)| *sources);
+    match (code, researched) {
+        ("ID", Some(observances)) => format!("{SOURCES}; observances: {observances}"),
+        ("ID", None) => SOURCES.to_string(),
+        (_, Some(sources)) => sources.to_string(),
+        (_, None) => "see README".to_string(),
+    }
 }
 
 #[cfg(test)]
@@ -1419,7 +1422,8 @@ mod tests {
             listing.ends_with(
                 "\n\nDates that follow the moon or an announcement are bundled through 2028; moon days are calculated for 20 more years after that. Tentative ones can move a day.\n\
                  Sources: SKB 3 Menteri 2026 (No. 1497/2/5 of 2025) and 2027 (No. 1205/3/2 of 2026), Kemenag isbat; \
-                 2028 estimated from the neo-MABIMS hisab, HKO and the Saka calendar until its SKB."
+                 2028 estimated from the neo-MABIMS hisab, HKO and the Saka calendar until its SKB; \
+                 observances: jdih.kemenkoinfra.go.id, detik.com, id.wikisource.org, katadata.co.id, news.detik.com, metrotvnews.com."
             ),
             "{listing}"
         );

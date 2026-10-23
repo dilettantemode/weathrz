@@ -14,7 +14,7 @@ const CACHE_WRITER_BUFFER_SIZE: usize = 32;
 #[derive(Debug)]
 enum CacheWriteTask {
     Location(GeoLocation),
-    Weather(WeatherData, f64, f64, Provider),
+    Weather(Box<WeatherData>, f64, f64, Provider),
     Geocode(String, f64, f64, String),
 }
 
@@ -261,7 +261,7 @@ pub fn save_weather_cache(
     longitude: f64,
     provider: Provider,
 ) {
-    let weather = weather.clone();
+    let weather = Box::new(weather.clone());
     let writer = get_cache_writer();
     let _ = writer.try_send(CacheWriteTask::Weather(
         weather, latitude, longitude, provider,

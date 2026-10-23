@@ -24,6 +24,8 @@ struct OpenMeteoResponse {
     current: CurrentWeather,
     #[serde(default)]
     hourly: Option<Hourly>,
+    #[serde(default)]
+    utc_offset_seconds: Option<i32>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -204,7 +206,10 @@ impl WeatherProvider for OpenMeteoProvider {
             precipitation: normalize_precipitation(data.current.precipitation, units.precipitation),
             wind_speed: normalize_wind_speed(data.current.wind_speed_10m, units.wind_speed),
             wind_direction: data.current.wind_direction_10m,
-            sun: CelestialEvents::only_day(data.current.is_day),
+            sun: CelestialEvents {
+                utc_offset_secs: data.utc_offset_seconds,
+                ..CelestialEvents::only_day(data.current.is_day)
+            },
             moon_phase,
             humidity: data.current.relative_humidity_2m,
             timestamp: data.current.time,
@@ -297,6 +302,12 @@ mod tests {
                 "hourly":{"time":["2026-10-21T12:00"],"precipitation_probability":[80],"weather_code":[63],"precipitation":[0.12]}}"#,
         )
         .unwrap();
+        assert_eq!(inches.utc_offset_seconds, None);
+        let zoned: OpenMeteoResponse = serde_json::from_str(
+            r#"{"utc_offset_seconds":25200,"current":{"time":"2026-10-21T11:45","temperature_2m":31.0,"is_day":1,"precipitation":0.0,"weather_code":2,"wind_speed_10m":9.0,"wind_direction_10m":200.0}}"#,
+        )
+        .unwrap();
+        assert_eq!(zoned.utc_offset_seconds, Some(7 * 3600));
         let wet = inches.hourly.unwrap().points(PrecipitationUnit::Inch);
         assert!((wet[0].precipitation - 3.048).abs() < 1e-9, "{wet:?}");
         let points = data.hourly.unwrap().points(PrecipitationUnit::Mm);
