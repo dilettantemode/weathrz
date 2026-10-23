@@ -1,4 +1,5 @@
 pub const LEAVES: char = 'l';
+pub const TALLEST_ROWS: u16 = 12;
 pub const WOOD: char = 'w';
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -30,7 +31,7 @@ pub const ROUND: TreeArt = TreeArt {
     credit: "round shade tree, jgs",
     art: include_str!("assets/trees/round.txt"),
     mask: include_str!("assets/trees/round.mask.txt"),
-    sway_rows: 6,
+    sway_rows: 7,
 };
 
 pub const FRUIT: TreeArt = TreeArt {
@@ -38,7 +39,7 @@ pub const FRUIT: TreeArt = TreeArt {
     credit: "fruit tree, ejm97",
     art: include_str!("assets/trees/fruit.txt"),
     mask: include_str!("assets/trees/fruit.mask.txt"),
-    sway_rows: 5,
+    sway_rows: 6,
 };
 
 pub const FIR: TreeArt = TreeArt {
@@ -46,7 +47,7 @@ pub const FIR: TreeArt = TreeArt {
     credit: "fir, R. Nykvist",
     art: include_str!("assets/trees/fir.txt"),
     mask: include_str!("assets/trees/fir.mask.txt"),
-    sway_rows: 7,
+    sway_rows: 9,
 };
 
 pub const SNOWY_FIR: TreeArt = TreeArt {
@@ -54,7 +55,7 @@ pub const SNOWY_FIR: TreeArt = TreeArt {
     credit: "snowy fir, jgs",
     art: include_str!("assets/trees/snowy_fir.txt"),
     mask: include_str!("assets/trees/snowy_fir.mask.txt"),
-    sway_rows: 6,
+    sway_rows: 9,
 };
 
 pub const BARE: TreeArt = TreeArt {
@@ -62,7 +63,7 @@ pub const BARE: TreeArt = TreeArt {
     credit: "bare winter tree, jgs",
     art: include_str!("assets/trees/bare.txt"),
     mask: include_str!("assets/trees/bare.mask.txt"),
-    sway_rows: 5,
+    sway_rows: 6,
 };
 
 pub const SAGUARO: TreeArt = TreeArt {
@@ -247,7 +248,7 @@ mod tests {
         for tree in ALL {
             let rows: Vec<&str> = tree.art.lines().collect();
             let masks: Vec<&str> = tree.mask.lines().collect();
-            assert!(rows.len() <= 10, "{}", tree.id);
+            assert!(rows.len() <= usize::from(TALLEST_ROWS), "{}", tree.id);
             assert!(rows.iter().all(|row| row.len() <= 21), "{}", tree.id);
             assert!(tree.sway_rows <= rows.len(), "{}", tree.id);
             assert_eq!(rows.len(), masks.len(), "{}", tree.id);
@@ -273,6 +274,12 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn the_tallest_tree_sets_the_tallest_rows() {
+        let tallest = ALL.iter().map(|tree| tree.art.lines().count()).max();
+        assert_eq!(tallest, Some(usize::from(TALLEST_ROWS)));
     }
 
     #[test]

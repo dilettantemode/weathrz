@@ -626,8 +626,8 @@ timeanddate.com and others; every source is listed in `docs/holidays/`.
 - **Source**: https://www.asciiart.eu/
 - **House**: Joan G. Stark
 - **Trees**: Joan G. Stark (round shade tree, snowy fir, bare winter tree), ejm97 (fruit
-  tree), R. Nykvist (fir), mga and kra (saguaros); each
-  tree's credit sits beside it in `src/scene/world/trees.rs`
+  tree), R. Nykvist (fir), mga and kra (saguaros), each stretched about a third taller
+  for this fork; each tree's credit sits beside it in `src/scene/world/trees.rs`
 - **Aircraft** (sky rotation): Joan G. Stark (small plane both ways, tiny plane,
   dirigible), dew (prop plane), wkm (mini plane), kh (three-engine jet), unknown (banner
   plane, rigid airship), Paulo Santos (biplane), Roland (airliner), Billcow168 (fighter

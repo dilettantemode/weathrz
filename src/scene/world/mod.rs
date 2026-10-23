@@ -28,7 +28,7 @@ impl WorldScene {
 
     pub fn ground_y(height: u16) -> u16 {
         let soil = height
-            .saturating_sub(House::HEIGHT)
+            .saturating_sub(House::HEIGHT.max(trees::TALLEST_ROWS))
             .clamp(Self::MIN_GROUND_HEIGHT, Self::GROUND_HEIGHT);
         height.saturating_sub(soil)
     }
@@ -126,12 +126,13 @@ mod tests {
     }
 
     #[test]
-    fn short_panes_give_up_soil_before_the_house_sinks() {
+    fn short_panes_give_up_soil_before_the_scene_sinks() {
         assert_eq!(WorldScene::ground_y(32), 25);
-        assert_eq!(WorldScene::ground_y(17), 10);
-        for height in 12..17 {
+        assert_eq!(WorldScene::ground_y(20), 13);
+        assert_eq!(WorldScene::ground_y(12), 10);
+        for height in 14..20 {
             let ground_y = WorldScene::ground_y(height);
-            assert_eq!(ground_y, House::HEIGHT, "{height}");
+            assert_eq!(ground_y, trees::TALLEST_ROWS, "{height}");
             assert!(
                 height - ground_y >= WorldScene::MIN_GROUND_HEIGHT,
                 "{height}"

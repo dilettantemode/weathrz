@@ -168,12 +168,15 @@ fn render_tree_art(
 ) -> io::Result<()> {
     let rows: Vec<&str> = tree.art.lines().collect();
     let masks: Vec<&str> = tree.mask.lines().collect();
-    let top = ground_y.saturating_sub(rows.len() as u16);
+    let top = i32::from(ground_y) - rows.len() as i32;
     let leafless = !tree.mask.contains(LEAVES);
     let holds_a_bauble = |letter: char, index: usize| {
         letter == LEAVES || (leafless && letter == WOOD && index < tree.sway_rows)
     };
     for (index, (row, letters)) in rows.iter().zip(&masks).enumerate() {
+        let Ok(y) = u16::try_from(top + index as i32) else {
+            continue;
+        };
         let offset = row_offset(index, tree.sway_rows, sway);
         for ((column, ch), letter) in row.chars().enumerate().zip(letters.chars()) {
             if ch == ' ' {
@@ -191,7 +194,7 @@ fn render_tree_art(
                 let bauble = BAUBLES[(index + column + phase as usize) % BAUBLES.len()];
                 let color = crate::animation::flyers::mask::colour(bauble, &style.palette)
                     .unwrap_or(style.tree_foliage);
-                renderer.render_char(cell_x, top + index as u16, 'o', color)?;
+                renderer.render_char(cell_x, y, 'o', color)?;
                 continue;
             }
             let color = match letter {
@@ -200,7 +203,7 @@ fn render_tree_art(
                 other => crate::animation::flyers::mask::colour(other, &style.palette)
                     .unwrap_or(style.tree_foliage),
             };
-            renderer.render_char(cell_x, top + index as u16, ch, color)?;
+            renderer.render_char(cell_x, y, ch, color)?;
         }
     }
     Ok(())
@@ -313,9 +316,10 @@ mod tests {
                 })
                 .sum::<usize>()
         };
-        assert_eq!(count(&plain, crown..crown + 6), 0);
-        assert!(count(&festive, crown..crown + 6) >= 3);
-        assert_eq!(plain[crown + 6..crown + 9], festive[crown + 6..crown + 9]);
+        let trunk = crown + ROUND.sway_rows;
+        assert_eq!(count(&plain, crown..trunk), 0);
+        assert!(count(&festive, crown..trunk) >= 3);
+        assert_eq!(plain[trunk..trunk + 3], festive[trunk..trunk + 3]);
     }
 
     #[test]
@@ -354,7 +358,7 @@ mod tests {
             .expect("the round tree");
         let column = still[crown].find(".-\"`").unwrap();
         assert_eq!(swayed[crown].find(".-\"`"), Some(column + 1));
-        let trunk = crown + 5;
+        let trunk = crown - 1 + ROUND.sway_rows;
         assert_eq!(
             still[trunk].get(column..column + 12),
             swayed[trunk].get(column..column + 12)
