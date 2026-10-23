@@ -3,7 +3,7 @@ use crate::app_state::condition_label;
 use crate::cache;
 use crate::config::{Config, IconMode};
 use crate::hud::{Greeting, HudRole, HudSegment, ascii_segments, greeting_segments, nerd_segments};
-use crate::weather::{WeatherClient, WeatherData, WeatherLocation};
+use crate::weather::{WeatherClient, WeatherCondition, WeatherData, WeatherLocation};
 use std::time::Duration;
 
 const FRESH_SECS: u64 = 600;
@@ -91,6 +91,11 @@ fn age_words(seconds: u64) -> String {
     }
 }
 
+pub fn simulated(condition: &str, night: bool) -> Result<(WeatherData, Option<u64>), String> {
+    let condition = condition.parse::<WeatherCondition>()?;
+    Ok((crate::app::simulated_weather(condition, night), None))
+}
+
 pub async fn fetch(config: &Config) -> Result<(WeatherData, Option<u64>), String> {
     let (kind, provider) = provider_for(config);
     let location = WeatherLocation {
@@ -169,6 +174,15 @@ mod tests {
             "{ascii}"
         );
         assert!(!ascii.contains("quit"), "{ascii}");
+    }
+
+    #[test]
+    fn a_simulated_line_shows_the_simulated_weather() {
+        let (snow, age) = simulated("snow", false).unwrap();
+        assert_eq!(age, None);
+        let line = compose(&snow, &config("ascii"), None, None);
+        assert!(line.starts_with("Weather: Snow | Temp: -3.0°C"), "{line}");
+        assert!(simulated("sleet-storm", false).is_err());
     }
 
     #[test]

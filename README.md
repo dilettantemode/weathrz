@@ -456,7 +456,8 @@ weathrz --line
 ```
 
 `--line` reuses a reading under 10 minutes old, otherwise fetches once (8 s limit) and
-falls back to the last saved reading with its age. For zjstatus:
+falls back to the last saved reading with its age. With `--simulate` (and `--night`) it
+prints the simulated weather instead, without fetching. For zjstatus:
 
 ```kdl
 command_weather_command  "weathrz --line"

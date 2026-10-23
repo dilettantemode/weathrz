@@ -354,7 +354,11 @@ async fn main() -> io::Result<()> {
                 short: events::short_greeting(def, &text),
                 text,
             });
-        match weathr::line::fetch(&config).await {
+        let reading = match cli.simulate.as_deref() {
+            Some(condition) => weathr::line::simulated(condition, cli.night),
+            None => weathr::line::fetch(&config).await,
+        };
+        match reading {
             Ok((weather, age)) => {
                 println!(
                     "{}",

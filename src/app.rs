@@ -277,7 +277,7 @@ fn animation_wind(weather: &WeatherData) -> (f32, f32) {
     )
 }
 
-fn simulated_weather(condition: WeatherCondition, night: bool) -> WeatherData {
+pub(crate) fn simulated_weather(condition: WeatherCondition, night: bool) -> WeatherData {
     WeatherData {
         condition,
         temperature: if condition.is_snowing() || condition == WeatherCondition::FreezingRain {
