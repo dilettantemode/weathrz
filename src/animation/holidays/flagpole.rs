@@ -128,6 +128,88 @@ const FLAGS: &[(&str, Cloth)] = &[
             &["fbbfrfbbf", "rrrrrrrrr", "fbbfrfbbf"],
         ),
     ),
+    (
+        "SG",
+        cloth(
+            &["=(*======", "=========", "========="],
+            &["rffrrrrrr", "rrrrrrrrr", "fffffffff"],
+        ),
+    ),
+    (
+        "PH",
+        cloth(
+            &["*\\=======", "=@\\======", "=@/======", "*/======="],
+            &["yfbbbbbbb", "fyfbbbbbb", "fyfrrrrrr", "yfrrrrrrr"],
+        ),
+    ),
+    (
+        "TH",
+        cloth(
+            &[
+                "=========",
+                "=========",
+                "=========",
+                "=========",
+                "=========",
+            ],
+            &[
+                "rrrrrrrrr",
+                "fffffffff",
+                "BBBBBBBBB",
+                "fffffffff",
+                "rrrrrrrrr",
+            ],
+        ),
+    ),
+    (
+        "VN",
+        cloth(
+            &["=========", "====*====", "========="],
+            &["rrrrrrrrr", "rrrryrrrr", "rrrrrrrrr"],
+        ),
+    ),
+    (
+        "KR",
+        cloth(
+            &["=#=====#=", "===(@)===", "=#=====#="],
+            &["fufffffuf", "fffrrbfff", "fufffffuf"],
+        ),
+    ),
+    (
+        "AU",
+        cloth(
+            &["\\|/===*==", "-+-==*=*=", "=*====*=="],
+            &["rfrBBBfBB", "frfBBfBfB", "BfBBBBfBB"],
+        ),
+    ),
+    (
+        "DE",
+        cloth(
+            &["=========", "=========", "========="],
+            &["uuuuuuuuu", "rrrrrrrrr", "yyyyyyyyy"],
+        ),
+    ),
+    (
+        "FR",
+        cloth(
+            &["=========", "=========", "========="],
+            &["BBBfffrrr", "BBBfffrrr", "BBBfffrrr"],
+        ),
+    ),
+    (
+        "EG",
+        cloth(
+            &["=========", "====@====", "========="],
+            &["rrrrrrrrr", "ffffyffff", "uuuuuuuuu"],
+        ),
+    ),
+    (
+        "TR",
+        cloth(
+            &["=========", "==(*=====", "========="],
+            &["rrrrrrrrr", "rrffrrrrr", "rrrrrrrrr"],
+        ),
+    ),
 ];
 
 const KOINOBORI: Cloth = cloth(
@@ -145,6 +227,7 @@ pub(crate) fn flag_of(country: &str) -> Option<&'static Cloth> {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Banner {
     Flag(&'static Cloth),
+    Lowered(&'static Cloth),
     Koinobori,
 }
 
@@ -152,10 +235,12 @@ pub(crate) fn banner_for(events: &ActiveEvents) -> Option<Banner> {
     if events.has(Look::Koinobori) {
         return Some(Banner::Koinobori);
     }
-    events
-        .country_of(Look::Flag)
-        .and_then(flag_of)
-        .map(Banner::Flag)
+    let cloth = events.country_of(Look::Flag).and_then(flag_of)?;
+    Some(if events.has(Look::HalfMast) {
+        Banner::Lowered(cloth)
+    } else {
+        Banner::Flag(cloth)
+    })
 }
 
 pub(crate) fn flies_left(wind: Wind) -> bool {
@@ -238,15 +323,19 @@ pub(crate) fn placed(
     frame: u64,
 ) -> Vec<Placed> {
     let (cloth, pole_rows, fish) = match banner {
-        Banner::Flag(cloth) => (cloth, FLAG_POLE_ROWS, false),
+        Banner::Flag(cloth) | Banner::Lowered(cloth) => (cloth, FLAG_POLE_ROWS, false),
         Banner::Koinobori => (&KOINOBORI, KOINOBORI_POLE_ROWS, true),
     };
     let ground = i32::from(door.ground_y);
     let x = pole_x(door);
     let top = ground - pole_rows;
+    let hoisted = match banner {
+        Banner::Lowered(cloth) => top + (pole_rows - cloth.art.len() as i32) / 2,
+        _ => top,
+    };
     let mut out = Vec::new();
     let finial = match banner {
-        Banner::Flag(_) => ('o', 'y'),
+        Banner::Flag(_) | Banner::Lowered(_) => ('o', 'y'),
         Banner::Koinobori => {
             let turn = ripple_step_frames(wind.speed_kmh)
                 .map_or(0, |_| (frame / PINWHEEL_FRAMES) as usize % PINWHEEL.len());
@@ -260,7 +349,9 @@ pub(crate) fn placed(
     if wind.speed_kmh < STILL_KMH {
         let hung = if fish { hung_carp } else { hung_flag };
         for (dx, dy, ch, letter) in hung(cloth) {
-            out.extend(place(x + 1 + dx, top + dy, ch, letter, width, height));
+            if hoisted + dy < ground {
+                out.extend(place(x + 1 + dx, hoisted + dy, ch, letter, width, height));
+            }
         }
         return out;
     }
@@ -278,7 +369,7 @@ pub(crate) fn placed(
             } else {
                 (x + 1 + from_pole, ch)
             };
-            out.extend(place(cx, top + dy as i32, ch, letter, width, height));
+            out.extend(place(cx, hoisted + dy as i32, ch, letter, width, height));
         }
     }
     out
@@ -454,6 +545,45 @@ mod tests {
             banner_for(&at("2026-08-15T10:00", "ID")),
             flag_of("ID").map(Banner::Flag)
         );
+    }
+
+    #[test]
+    fn days_of_mourning_lower_the_flag_to_half_mast() {
+        let id = flag_of("ID").unwrap();
+        assert_eq!(
+            banner_for(&at("2026-09-30T10:00", "ID")),
+            Some(Banner::Lowered(id))
+        );
+        assert_eq!(
+            banner_for(&at("2026-10-01T10:00", "ID")),
+            Some(Banner::Flag(id))
+        );
+        let us = flag_of("US").unwrap();
+        assert_eq!(
+            banner_for(&at("2026-05-25T10:00", "US")),
+            Some(Banner::Lowered(us))
+        );
+        assert_ne!(
+            banner_for(&at("2026-05-25T13:00", "US")),
+            Some(Banner::Lowered(us)),
+            "Memorial Day goes back to full staff at noon"
+        );
+        let top_row = |banner| {
+            placed(banner, door(), 200, 32, wind(12.0, 270.0), 0)
+                .iter()
+                .filter(|cell| cell.letter == 'r')
+                .map(|cell| cell.y)
+                .min()
+        };
+        let full = top_row(Banner::Flag(id)).unwrap();
+        assert_eq!(top_row(Banner::Lowered(id)), Some(full + 2));
+        let ground = door().ground_y;
+        for speed in [0.0, 12.0] {
+            for flag in FLAGS.iter().map(|(_, cloth)| Banner::Lowered(cloth)) {
+                let cells = placed(flag, door(), 200, 32, wind(speed, 270.0), 0);
+                assert!(cells.iter().all(|cell| cell.y < ground), "{flag:?}");
+            }
+        }
     }
 
     #[test]

@@ -5,20 +5,30 @@ const NEAREST_KM: f64 = 1200.0;
 const EARTH_KM: f64 = 6371.0;
 
 pub const COUNTRIES: &[(&str, &str)] = &[
+    ("AU", "Australia"),
     ("BD", "Bangladesh"),
     ("BR", "Brazil"),
     ("CN", "China"),
+    ("DE", "Germany"),
+    ("EG", "Egypt"),
     ("ET", "Ethiopia"),
+    ("FR", "France"),
     ("GB", "United Kingdom"),
     ("ID", "Indonesia"),
     ("IN", "India"),
     ("JP", "Japan"),
+    ("KR", "South Korea"),
     ("MX", "Mexico"),
     ("MY", "Malaysia"),
     ("NG", "Nigeria"),
+    ("PH", "Philippines"),
     ("PK", "Pakistan"),
     ("RU", "Russia"),
+    ("SG", "Singapore"),
+    ("TH", "Thailand"),
+    ("TR", "Türkiye"),
     ("US", "United States"),
+    ("VN", "Vietnam"),
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -157,7 +167,12 @@ mod tests {
             ("Batam", 1.13, 104.05, Some("ID")),
             ("Johor Bahru", 1.46, 103.76, Some("MY")),
             ("Kota Kinabalu", 5.98, 116.07, Some("MY")),
-            ("Singapore", 1.29, 103.85, Some("other")),
+            ("Singapore", 1.29, 103.85, Some("SG")),
+            ("Woodlands", 1.44, 103.79, Some("SG")),
+            ("Strasbourg", 48.57, 7.75, Some("FR")),
+            ("Kehl", 48.57, 7.81, Some("FR")),
+            ("Busan", 35.18, 129.08, Some("KR")),
+            ("Edirne", 41.68, 26.56, Some("TR")),
             ("Kolkata", 22.57, 88.36, Some("IN")),
             ("Amritsar", 31.63, 74.87, Some("IN")),
             ("Lahore", 31.55, 74.34, Some("PK")),
@@ -176,7 +191,8 @@ mod tests {
             ("London", 51.5072, -0.1276, Some("GB")),
             ("Belfast", 54.6, -5.93, Some("GB")),
             ("Dublin", 53.35, -6.26, Some("other")),
-            ("Paris", 48.8566, 2.3522, Some("other")),
+            ("Paris", 48.8566, 2.3522, Some("FR")),
+            ("Barcelona", 41.39, 2.17, Some("other")),
             ("New York", 40.71, -74.01, Some("US")),
             ("Honolulu", 21.3, -157.86, Some("US")),
             ("Vancouver", 49.28, -123.12, Some("other")),
@@ -222,13 +238,15 @@ mod tests {
         assert!(unknown.contains("\"Narnia\" is not known"), "{unknown}");
         assert!(unknown.contains("ID, IN, JP"), "{unknown}");
         assert_eq!(resolve(CountrySetting::Auto, -6.2, 106.8), Some("ID"));
-        assert_eq!(resolve(CountrySetting::Auto, 48.86, 2.35), None);
+        assert_eq!(resolve(CountrySetting::Auto, 48.86, 2.35), Some("FR"));
+        assert_eq!(resolve(CountrySetting::Auto, 41.39, 2.17), None);
         assert_eq!(
             resolve(CountrySetting::Fixed("JP"), -6.2, 106.8),
             Some("JP")
         );
         assert_eq!(resolve(CountrySetting::Nowhere, -6.2, 106.8), None);
         assert_eq!(name_of("GB"), Some("United Kingdom"));
-        assert_eq!(name_of("FR"), None);
+        assert_eq!(name_of("FR"), Some("France"));
+        assert_eq!(name_of("ES"), None);
     }
 }

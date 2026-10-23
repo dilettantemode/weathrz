@@ -129,6 +129,7 @@ pub enum Look {
     Bonfire,
     Holi,
     Koinobori,
+    HalfMast,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -142,7 +143,7 @@ pub struct EventDef {
 
 const NOT_KEPT: &[(&str, &[&str])] = &[
     (CHRISTMAS_LIGHTS, &["ET"]),
-    (CHRISTMAS, &["ET", "RU"]),
+    (CHRISTMAS, &["EG", "ET", "RU", "TR"]),
     (NEW_YEAR, &["ET"]),
 ];
 
@@ -472,6 +473,13 @@ impl EventSettings {
             for def in matching {
                 if !disabled.contains(&def.id) {
                     disabled.push(def.id);
+                }
+            }
+        }
+        if !config.observances {
+            for id in world::OBSERVANCES {
+                if !disabled.contains(id) {
+                    disabled.push(id);
                 }
             }
         }
@@ -1009,29 +1017,34 @@ fn is_active_at(def: &EventDef, now: NaiveDateTime, place: Option<Place>) -> boo
     occurrence_at(def, now, place).is_some_and(|occurrence| occurrence.start <= now)
 }
 
+pub fn is_observance(def: &EventDef) -> bool {
+    world::OBSERVANCES.contains(&def.id)
+}
+
 fn priority(
     index: usize,
     def: &EventDef,
     now: NaiveDateTime,
     settings: &EventSettings,
-) -> (u8, i64, u8, usize) {
+) -> (u8, bool, i64, u8, usize) {
     if settings.user.is_own(def) {
-        return (0, 0, 0, index);
+        return (0, false, 0, 0, index);
     }
     let group = match def.country() {
         _ if def.id == NEW_YEAR => 0,
         Some(_) => 1,
         None => 2,
     };
+    let observance = is_observance(def);
     if def.country() != Some("id") && def.country().is_some() {
         let span = next_window(def, now).map_or(0, |(start, end)| (end - start).num_hours());
         let kind = match def.dates {
             Dates::Listed { .. } => 0,
             _ => 1,
         };
-        return (group, span, kind, index);
+        return (group, observance, span, kind, index);
     }
-    (group, 0, 0, index)
+    (group, observance, 0, 0, index)
 }
 
 pub fn resolve(now: NaiveDateTime, settings: &EventSettings) -> ActiveEvents {
@@ -1070,32 +1083,17 @@ fn country_line(settings: &EventSettings) -> String {
 }
 
 pub fn format_listing(now: NaiveDateTime, settings: &EventSettings) -> String {
-    let shown: Vec<&EventDef> = settings
+    let (marked, days): (Vec<&EventDef>, Vec<&EventDef>) = settings
         .catalogue()
         .filter(|def| def.belongs_to(settings.country))
-        .collect();
-    let width = shown.iter().map(|def| def.id.len()).max().unwrap_or(0) + 1;
-    let mut upcoming: Vec<(&EventDef, Occurrence)> = shown
-        .into_iter()
-        .filter_map(|def| Some((def, occurrence_at(def, now, settings.place)?)))
-        .collect();
-    upcoming.sort_by_key(|(_, occurrence)| occurrence.start);
+        .partition(|def| is_observance(def));
     let mut lines: Vec<String> = vec![country_line(settings)];
-    lines.extend(upcoming.into_iter().map(|(def, occurrence)| {
-        let mut notes = String::new();
-        if occurrence.tentative {
-            notes.push_str("  (tentative)");
-        }
-        if !settings.allows(def.id) {
-            notes.push_str("  (disabled)");
-        }
-        format!(
-            "{:<width$} {} → {}{notes}",
-            def.id,
-            occurrence.start.format("%Y-%m-%d %H:%M"),
-            occurrence.end.format("%m-%d %H:%M"),
-        )
-    }));
+    lines.extend(listing_lines(days, now, settings));
+    let marked = listing_lines(marked, now, settings);
+    if !marked.is_empty() {
+        lines.push(format!("\n{}", crate::text::LISTING_OBSERVANCES));
+        lines.extend(marked);
+    }
     if let Some(code) = settings.country {
         let last_year = last_year_for(code);
         lines.push(format!(
@@ -1105,6 +1103,37 @@ pub fn format_listing(now: NaiveDateTime, settings: &EventSettings) -> String {
         ));
     }
     lines.join("\n")
+}
+
+fn listing_lines(
+    shown: Vec<&EventDef>,
+    now: NaiveDateTime,
+    settings: &EventSettings,
+) -> Vec<String> {
+    let width = shown.iter().map(|def| def.id.len()).max().unwrap_or(0) + 1;
+    let mut upcoming: Vec<(&EventDef, Occurrence)> = shown
+        .into_iter()
+        .filter_map(|def| Some((def, occurrence_at(def, now, settings.place)?)))
+        .collect();
+    upcoming.sort_by_key(|(_, occurrence)| occurrence.start);
+    upcoming
+        .into_iter()
+        .map(|(def, occurrence)| {
+            let mut notes = String::new();
+            if occurrence.tentative {
+                notes.push_str("  (tentative)");
+            }
+            if !settings.allows(def.id) {
+                notes.push_str("  (disabled)");
+            }
+            format!(
+                "{:<width$} {} → {}{notes}",
+                def.id,
+                occurrence.start.format("%Y-%m-%d %H:%M"),
+                occurrence.end.format("%m-%d %H:%M"),
+            )
+        })
+        .collect()
 }
 
 fn sources_for(code: &str) -> &'static str {
@@ -1383,7 +1412,20 @@ mod tests {
             ),
             "{listing}"
         );
-        assert_eq!(lines.len(), BUILTIN.len() + 5);
+        let observances = lines
+            .iter()
+            .skip_while(|line| **line != crate::text::LISTING_OBSERVANCES)
+            .skip(1)
+            .take_while(|line| line.starts_with("id:"))
+            .count();
+        assert_eq!(
+            observances,
+            world::OBSERVANCES
+                .iter()
+                .filter(|id| id.starts_with("id:"))
+                .count()
+        );
+        assert_eq!(lines.len(), BUILTIN.len() + 5 + 2 + observances);
         let off = EventSettings {
             disabled: vec![HALLOWEEN, RAMADAN],
             ..EventSettings::in_country("ID")
@@ -1656,9 +1698,43 @@ mod tests {
     }
 
     #[test]
+    fn observances_can_be_switched_off_without_touching_days_off() {
+        let quiet = crate::config::EventsConfig {
+            observances: false,
+            country: "US".to_string(),
+            ..crate::config::EventsConfig::default()
+        };
+        let (mut settings, _) = EventSettings::from_config(&quiet);
+        settings.locate(40.7, -74.0);
+        let greeting = |when: &str| {
+            resolve(at(when), &settings)
+                .greeting()
+                .map(|(def, _)| def.id)
+        };
+        assert_eq!(
+            greeting("2027-02-02T10:00"),
+            None,
+            "Groundhog Day is an observance"
+        );
+        assert_eq!(greeting("2027-07-04T10:00"), Some("us:independence_day"));
+        let (mut loud, _) = EventSettings::from_config(&crate::config::EventsConfig {
+            country: "US".to_string(),
+            ..crate::config::EventsConfig::default()
+        });
+        loud.locate(40.7, -74.0);
+        assert_eq!(
+            resolve(at("2027-02-02T10:00"), &loud)
+                .greeting()
+                .map(|(def, _)| def.id),
+            Some("us:groundhog_day")
+        );
+    }
+
+    #[test]
     fn unknown_disable_ids_warn_and_are_ignored() {
         let config = crate::config::EventsConfig {
             enabled: true,
+            observances: true,
             disable: vec![
                 "haloween".to_string(),
                 " halloween ".to_string(),
@@ -1890,11 +1966,14 @@ mod tests {
                 .map(|text| NaiveDate::parse_from_str(text, "%Y-%m-%d").unwrap())
                 .collect();
             for day in &days {
-                let noon = day.and_hms_opt(12, 0, 0).unwrap();
-                assert!(resolve(noon, &settings).contains(id), "{id} on {day}");
+                let late_morning = day.and_hms_opt(11, 0, 0).unwrap();
+                assert!(
+                    resolve(late_morning, &settings).contains(id),
+                    "{id} on {day}"
+                );
                 for neighbour in [*day - Duration::days(1), *day + Duration::days(1)] {
                     if !days.contains(&neighbour) {
-                        let noon = neighbour.and_hms_opt(12, 0, 0).unwrap();
+                        let noon = neighbour.and_hms_opt(11, 0, 0).unwrap();
                         assert!(
                             !resolve(noon, &settings).contains(id),
                             "{id} on {neighbour}"
@@ -2033,6 +2112,7 @@ mod tests {
                 assert!(
                     winner.id == def.id
                         || winner.id == NEW_YEAR
+                        || (is_observance(def) && !is_observance(winner))
                         || (winner.country() == def.country() && span(winner) <= span(def)),
                     "{} at {showcase} greets as {}",
                     def.id,
@@ -2083,11 +2163,20 @@ mod tests {
             .keys()
             .filter(|id| !generated.contains(id.as_str()))
             .filter(|id| !id.ends_with(":christmas") && !id.ends_with(":new_year"))
+            .filter(|id| !id.starts_with("mx:media_asta_"))
             .collect();
         assert_eq!(
             left_out,
             [&"et:derg_downfall_day".to_string()],
             "{left_out:?}"
+        );
+        let mexico_lowered = world::CHECKS
+            .iter()
+            .filter(|(id, _)| id.starts_with("mx:media_asta_"))
+            .count();
+        assert_eq!(
+            mexico_lowered, 9,
+            "only the best-known Mexican half-mast days"
         );
     }
 

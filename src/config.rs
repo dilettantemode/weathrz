@@ -116,6 +116,7 @@ fn text_list(value: &toml::Value) -> Vec<String> {
 #[derive(Debug, Clone, PartialEq)]
 pub struct EventsConfig {
     pub enabled: bool,
+    pub observances: bool,
     pub disable: Vec<String>,
     pub country: String,
     pub warnings: Vec<String>,
@@ -125,6 +126,7 @@ impl Default for EventsConfig {
     fn default() -> Self {
         Self {
             enabled: true,
+            observances: true,
             disable: Vec::new(),
             country: String::new(),
             warnings: Vec::new(),
@@ -155,6 +157,13 @@ impl EventsConfig {
             Some(toml::Value::Boolean(enabled)) => config.enabled = *enabled,
             Some(other) => config.warnings.push(format!(
                 "events.enabled = {other} is not true or false; using true"
+            )),
+        }
+        match table.get("observances") {
+            None => {}
+            Some(toml::Value::Boolean(observances)) => config.observances = *observances,
+            Some(other) => config.warnings.push(format!(
+                "events.observances = {other} is not true or false; using true"
             )),
         }
         if let Some(disable) = table.get("disable") {
@@ -1096,6 +1105,12 @@ auto = false
         assert!(!config.events.enabled);
         assert_eq!(config.events.disable, vec!["halloween"]);
         assert!(config.events.warnings.is_empty());
+        assert!(config.events.observances);
+        let config: Config = toml::from_str("[events]\nobservances = false\n").unwrap();
+        assert!(!config.events.observances);
+        let config: Config = toml::from_str("[events]\nobservances = \"no\"\n").unwrap();
+        assert!(config.events.observances);
+        assert!(config.events.warnings[0].contains("observances"));
         let config: Config = toml::from_str("[events]\ncountry = \"MY\"\n").unwrap();
         assert_eq!(config.events.country, "MY");
         assert_eq!(Config::default().events.country, "");

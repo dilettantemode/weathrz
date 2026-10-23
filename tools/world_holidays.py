@@ -19,12 +19,13 @@ LOOKS = {
     "lunar_new_year": ["LunarNewYear"], "lanterns": ["Lanterns"], "diwali": ["Diwali"],
     "ramadan": ["Ramadan"], "eid": ["Eid"], "ketupat": ["Ketupat"],
     "fireworks_night": ["Fireworks"], "candles": ["Candles"], "easter_eggs": ["Easter"],
+    "half_mast": ["Flag", "HalfMast"],
 }
 ICON_BY_LOOK = {
     "lunar_new_year": "eef8", "lanterns": "f0f62", "diwali": "f05e2", "ramadan": "f0f67",
     "eid": "f0979", "ketupat": "f0979", "fireworks_night": "f0e30", "bonfire": "f0edd",
     "candles": "f05e2", "easter_eggs": "f0ab0", "flag": "f023b", "holi": "f0e30",
-    "koinobori": "f068f",
+    "koinobori": "f068f", "half_mast": "f05e2",
 }
 ICON_BY_WORD = [
     (("independence", "national_day", "republic", "constitution", "victory", "unity", "democracy",
@@ -171,7 +172,7 @@ def stamp(day, hour):
 
 def load():
     holidays = []
-    for path in sorted(HERE.glob("group-*.md")) + [HERE / "extras.md"]:
+    for path in sorted(HERE.glob("group-*.md")) + [HERE / "extras.md", HERE / "observances.md"]:
         text = path.read_text()
         for block in re.findall(r"```toml\n(.*?)```", text, re.S):
             data = tomllib.loads(block)
@@ -183,6 +184,17 @@ EXCLUDE = {
     "et:derg_downfall_day": "not a day off under Proclamation 1334/2024",
 }
 
+MEXICO_HALF_MAST_SHOWN = {
+    "mx:media_asta_francisco_madero", "mx:media_asta_cuauhtemoc", "mx:media_asta_emiliano_zapata",
+    "mx:media_asta_benito_juarez", "mx:media_asta_miguel_hidalgo", "mx:media_asta_ninos_heroes",
+    "mx:media_asta_sismos_1985_2017", "mx:media_asta_tlatelolco_1968", "mx:media_asta_jose_maria_morelos",
+}
+
+UNTIL_HOUR = {
+    "us:memorial_day_half_mast": 12,
+    "au:anzac_day_half_mast": 12,
+}
+
 SKIP = {
     ("christmas", 12, 25), ("christmas_day", 12, 25), ("new_years_day", 1, 1), ("new_year", 1, 1),
     ("new_year_day", 1, 1), ("new_years", 1, 1),
@@ -191,7 +203,7 @@ SKIP = {
 
 def main():
     holidays = load()
-    defs, checks, sources, notes = [], [], {}, []
+    defs, checks, sources, notes, observances = [], [], {}, [], []
     last_years = {}
     seen = set()
     for holiday in holidays:
@@ -200,6 +212,9 @@ def main():
         key = f"{country.lower()}:{hid}"
         if key in EXCLUDE:
             notes.append(f"{key}: excluded ({EXCLUDE[key]})")
+            continue
+        if key.startswith("mx:media_asta_") and key not in MEXICO_HALF_MAST_SHOWN:
+            notes.append(f"{key}: excluded (only the best-known Mexican half-mast days are shown)")
             continue
         if key in seen:
             notes.append(f"duplicate {key} skipped")
@@ -236,6 +251,9 @@ def main():
         except (ValueError, KeyError, IndexError) as error:
             raise SystemExit(f"{key}: bad rule {rule_text!r}: {error}")
         rust_dates = None
+        until = UNTIL_HOUR.get(key)
+        if until:
+            rule = None
         if rule:
             rust_rule, compute = rule
             lengths = {len(r) for dates in by_year.values() for r in runs(dates)}
@@ -260,7 +278,7 @@ def main():
                         first_row_eve = run_eve
                     start = run[0] - dt.timedelta(days=1) if run_eve else run[0]
                     begin = stamp(start, 18 if run_eve else 0)
-                    end = stamp(run[-1] + dt.timedelta(days=1), 0)
+                    end = stamp(run[-1], until) if until else stamp(run[-1] + dt.timedelta(days=1), 0)
                     maker = "tentative" if year in tentative_years else "on"
                     rows.append(f"{maker}({begin}, {end}, 0)")
             if look in DAY_LOOKS:
@@ -280,6 +298,8 @@ def main():
             f"        looks: &[{', '.join('Look::' + name for name in looks)}],\n"
             "    },"
         )
+        if holiday.get("observance", False):
+            observances.append(key)
         every_date = [day for dates in by_year.values() for day in dates]
         checks.append(f"    ({rust_string(key)}, &[{', '.join(rust_string(d.isoformat()) for d in every_date)}]),")
         source = holiday.get("source", "")
@@ -311,6 +331,7 @@ def main():
         + "\n".join(f"    ({rust_string(code)}, {year})," for code, year in sorted(last_years.items()))
         + "\n];\n\n"
         "pub const SOURCES: &[(&str, &str)] = &[\n" + source_rows + "\n];\n\n"
+        "pub const OBSERVANCES: &[&str] = &[\n" + "\n".join(f"    {rust_string(key)}," for key in observances) + "\n];\n\n"
         "#[cfg(test)]\n"
         "pub(super) const CHECKS: &[(&str, &[&str])] = &[\n" + "\n".join(checks) + "\n];\n"
     )

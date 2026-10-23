@@ -7,7 +7,7 @@ aircraft and the odd character passing by.
 > **weathrz is a fork of [weathr](https://github.com/Veirt/weathr)** by Dony Mulya
 > ([@Veirt](https://github.com/Veirt)), with a custom flavour. The animated scene, the
 > weather providers and the base of the code are weathr's work; weathrz adds scenery,
-> holidays for 14 countries, a real sun and moon, sky characters and a busier status bar.
+> holidays for 24 countries, a real sun and moon, sky characters and a busier status bar.
 > It is not affiliated with or endorsed by the weathr project, so please report weathrz
 > bugs here, not upstream. For the original, see
 > [Veirt/weathr](https://github.com/Veirt/weathr).
@@ -51,9 +51,11 @@ holiday tables): [FORK.md](FORK.md).
 - Seasonal events everywhere (`--date`, `--event`, `--list-events`): Halloween (pumpkins,
   bats, a witch), Christmas (roof lights, tree ornaments, a sleigh) and New Year (a
   countdown, sparkles and fireworks).
-- Public holidays for 14 countries, picked from your location's country (`[events]
-  country`, `--country`): Bangladesh, Brazil, China, Ethiopia, India, Indonesia, Japan,
-  Malaysia, Mexico, Nigeria, Pakistan, Russia, the United Kingdom and the United States.
+- Public holidays for 24 countries, picked from your location's country (`[events]
+  country`, `--country`): Australia, Bangladesh, Brazil, China, Egypt, Ethiopia, France,
+  Germany, India, Indonesia, Japan, Malaysia, Mexico, Nigeria, Pakistan, the Philippines,
+  Russia, Singapore, South Korea, Thailand, Türkiye, the United Kingdom, the United States
+  and Vietnam, plus each country's best-known observances and its days of mourning.
   Each country's flag flies on its national days, with Diwali lights, Holi colour and the
   Holika Dahan bonfire, Chinese New Year and Mid-Autumn lampions, ketupat at Eid,
   koinobori on Children's Day, the Meskel bonfire, Fourth of July and Bonfire Night
@@ -263,7 +265,7 @@ the same English words everywhere:
 |---|---|---|
 | `halloween` | 31 Oct → 1 Nov 06:00 | pumpkins by the door, bats and a witch at night, "Happy Halloween" |
 | `christmas_lights` | 15 → 26 Dec | lights on the eave and veranda (unlit by day, twinkling at night), ornaments on the trees |
-| `christmas` | 24 → 26 Dec | "Merry Christmas" (not in Russia or Ethiopia, which keep 7 January); a sleigh and reindeer cross the sky on Christmas Eve night (19:00–05:00) |
+| `christmas` | 24 → 26 Dec | "Merry Christmas" (not in Russia, Ethiopia or Egypt, which keep 7 January, nor in Türkiye); a sleigh and reindeer cross the sky on Christmas Eve night (19:00–05:00) |
 | `new_year` | 31 Dec 20:00 → 1 Jan | a countdown ("2027 in 00:12"), sparkles from 20:00, fireworks 23:00–01:00, then "Happy New Year 2027" |
 
 ### Holidays by country
@@ -278,22 +280,39 @@ another country, set it yourself:
 country = "auto"        # or a code below, or "none" for the yearly events only
 ```
 
-| Code | Country | Days | Decorations |
-|---|---|---|---|
-| `BD` | Bangladesh | 18 | the flag on Independence and Victory Day; the crescent for Ramadan and both Eids, candles on Shab-e-Barat and Buddha Purnima |
-| `BR` | Brazil | 11 | the flag on Independence Day, Easter eggs, candles on Finados |
-| `CN` | China | 7 | the flag on National Day; lampions for the Spring Festival (fireworks on New Year's Eve) and Mid-Autumn |
-| `ET` | Ethiopia | 12 | the flag on Adwa and Patriots' Victory Day; the Demera bonfire on Meskel eve; candles at Genna and Fasika, the crescent on both Eids |
-| `IN` | India | 21 | the flag on Republic and Independence Day; a Holika Dahan bonfire on Holi eve and colour thrown across the yard on Holi; Diwali lights, lamps and fireworks; Dussehra fireworks; candles on Vesak and Guru Nanak Jayanti; the crescent on both Eids |
-| `ID` | Indonesia | 13 | the flag and bunting all August and a kite on Independence Day; lampions and fireworks at Chinese New Year; a Ramadan crescent, holiday traffic before Eid, takbiran torches and ketupat at both Eids; a silent Nyepi; Vesak candles and sky lanterns; Easter eggs |
-| `JP` | Japan | 15 | koinobori carp streamers on Kodomo no Hi; the Hinomaru on Foundation Day and the Emperor's Birthday; greetings for the rest |
-| `MY` | Malaysia | 12 | the Jalur Gemilang on Merdeka and Malaysia Day; lampions at Chinese New Year, ketupat at Hari Raya, Deepavali lights, the crescent for Ramadan |
-| `MX` | Mexico | 6 | the flag and fireworks for El Grito, candles on Día de Muertos |
-| `NG` | Nigeria | 10 | the flag on Independence Day; the crescent on both Eids and Mawlid ("Barka da Sallah") |
-| `PK` | Pakistan | 12 | the flag on Pakistan Day and Independence Day; the crescent for Ramadan and both Eids |
-| `RU` | Russia | 8 | the flag on Russia Day and Unity Day; fireworks for the New Year holidays and Victory Day, candles at Orthodox Christmas |
-| `GB` (or `UK`) | United Kingdom | 9 | a bonfire and fireworks on Bonfire Night, Easter eggs |
-| `US` | United States | 10 | the flag and fireworks on the Fourth of July, Easter eggs |
+| Code | Country | Days off | Observances | Decorations |
+|---|---|---|---|---|
+| `AU` | Australia | 5 | 7 | the flag and fireworks on Australia Day, the flag at half-mast on Anzac morning, Easter eggs, candles on Remembrance Day |
+| `BD` | Bangladesh | 18 | 4 | the flag on Independence and Victory Day, at half-mast on 21 February and 14 December; the crescent for Ramadan and both Eids, candles on Shab-e-Barat and Buddha Purnima |
+| `BR` | Brazil | 10 | 7 | the flag on Independence Day, Easter eggs, candles on Finados |
+| `CN` | China | 7 | 9 | the flag on National Day; lampions for the Spring Festival (fireworks on New Year's Eve) and Mid-Autumn |
+| `DE` | Germany | 7 | 9 | the flag on German Unity Day and at half-mast on three days of remembrance, St Martin's lanterns, Advent and Christmas Eve candles, Easter eggs |
+| `EG` | Egypt | 13 | 3 | the flag on its national days, the crescent for Ramadan and both Eids, Easter eggs for Sham el-Nessim, candles at Coptic Christmas |
+| `ET` | Ethiopia | 12 | 4 | the flag on Adwa and Patriots' Victory Day; the Demera bonfire on Meskel eve; candles at Genna and Fasika, the crescent on both Eids |
+| `FR` | France | 9 | 5 | the flag and fireworks on Bastille Day, the flag on VE Day and Armistice Day, Easter eggs |
+| `IN` | India | 21 | 8 | the flag on Republic and Independence Day; a Holika Dahan bonfire on Holi eve and colour thrown across the yard on Holi; Diwali lights, lamps and fireworks; Dussehra fireworks; candles on Vesak and Guru Nanak Jayanti; the crescent on both Eids |
+| `ID` | Indonesia | 13 | 13 | the flag at half-mast on 30 September; the flag and bunting all August and a kite on Independence Day; lampions and fireworks at Chinese New Year; a Ramadan crescent, holiday traffic before Eid, takbiran torches and ketupat at both Eids; a silent Nyepi; Vesak candles and sky lanterns; Easter eggs |
+| `JP` | Japan | 15 | 6 | koinobori carp streamers on Kodomo no Hi; the Hinomaru on Foundation Day and the Emperor's Birthday, at half-mast on 15 August; greetings for the rest |
+| `KR` | South Korea | 12 | 7 | Seollal lampions, the Taegukgi on its national days and at half-mast on Memorial Day, Buddha's Birthday lanterns, a Daeboreum bonfire |
+| `MY` | Malaysia | 12 | 6 | the Jalur Gemilang on Merdeka and Malaysia Day; lampions at Chinese New Year, ketupat at Hari Raya, Deepavali lights, the crescent for Ramadan |
+| `MX` | Mexico | 5 | 18 | the flag and fireworks for El Grito, at half-mast on nine *días de media asta*, candles on Día de Muertos |
+| `NG` | Nigeria | 9 | 4 | the flag on Independence Day; the crescent on both Eids and Mawlid ("Barka da Sallah") |
+| `PH` | Philippines | 18 | 7 | the flag on its heroes' and national days, candles on All Saints' and All Souls', the crescent for Ramadan and both Eids, Chinese New Year lampions |
+| `PK` | Pakistan | 12 | 4 | the flag on Pakistan Day and Independence Day; the crescent for Ramadan and both Eids |
+| `RU` | Russia | 8 | 9 | the flag on Russia Day and Unity Day, at half-mast on 22 June; fireworks for the New Year holidays and Victory Day, candles at Orthodox Christmas |
+| `SG` | Singapore | 8 | 6 | the flag and fireworks on National Day, lampions at Chinese New Year and Mid-Autumn, ketupat at Hari Raya, Deepavali lights, Vesak candles |
+| `TH` | Thailand | 17 | 5 | candles on the Buddhist days, the flag on the King's birthday and national days, Loy Krathong lanterns, Chinese New Year lampions |
+| `TR` | Türkiye | 8 | 6 | the flag on its national days and fireworks for Republic Day, at half-mast on 10 November, the crescent for Ramadan and both bayrams |
+| `GB` (or `UK`) | United Kingdom | 6 | 11 | a bonfire and fireworks on Bonfire Night, Easter eggs |
+| `US` | United States | 9 | 11 | the flag and fireworks on the Fourth of July, at half-mast on five days of remembrance, Easter eggs |
+| `VN` | Vietnam | 6 | 6 | Tết lampions, the flag and fireworks on National Day, Vesak and Mid-Autumn lanterns |
+
+Observances are days most people in a country would recognise that are not days off:
+Mother's Day, Hari Kartini, Pepero Day, Remembrance Sunday. They greet like holidays but
+give way to a day off on the same date; `[events] observances = false` hides them all.
+On days of mourning set by law or protocol (Indonesia's 30 September, US Memorial Day
+until noon, Atatürk's 10 November, Germany's Volkstrauertag, Mexico's best-known *días de
+media asta*) the flag flies at half-mast, two rows down the pole.
 
 Flags fly from a pole by the garden fence, ripple with the wind and stream downwind of
 the pole; in calm air (under 3 km/h) they hang limp beside it, and the koinobori carp
@@ -415,6 +434,7 @@ Turn them off in `config.toml`:
 ```toml
 [events]
 enabled = true          # false turns every event off
+observances = true      # false keeps the days off and hides the observances
 disable = []            # e.g. ["halloween", "gb:bonfire_night"]
 country = "auto"
 ```

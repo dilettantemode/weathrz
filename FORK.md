@@ -200,8 +200,8 @@ Small things left for later:
   2026).
 - The country comes from the nearest of about 1,000 places; in a border town (Johor
   Bahru vs Singapore, Amritsar vs Lahore) check `weathrz --list-events` and set
-  `[events] country` if it guessed wrong. Hong Kong, Singapore and countries outside
-  the 14 get the yearly events only.
+  `[events] country` if it guessed wrong. Hong Kong, Macau and countries outside
+  the 24 get the yearly events only.
 - Japan's days are greetings only, and substitute days off (US observed days, UK
   substitute bank holidays, Japan's furikae kyujitsu) are not shown: each holiday shows
   on its own date.
@@ -219,8 +219,8 @@ estimates; when a list comes out, replace that country's `dates_2028` and set
 1. For Indonesia, add one row per occurrence to `src/events/dates.rs` (`tentative` until
    the isbat) and bump `LAST_YEAR` there. For the other countries, add a
    `dates_2029 = [...]` line (and `tentative_2029 = true` when the list is not
-   official yet) to each holiday in `docs/holidays/group-*.md`, and to `extras.md` for
-   Ramadan, and add the Chinese New Year's Day to `LUNAR_NEW_YEAR` in
+   official yet) to each holiday in `docs/holidays/group-*.md` and `observances.md`, and
+   to `extras.md` for Ramadan, and add the Chinese New Year's Day to `LUNAR_NEW_YEAR` in
    `tools/world_holidays.py`. Rule-based days need nothing: they are computed.
 2. Run `python3 tools/world_holidays.py` (it rewrites `src/events/world.rs` and runs
    rustfmt), then `cargo test --locked`. The test
@@ -236,11 +236,10 @@ In rough order of value:
    moon can still move a day (see the notes in `docs/holidays/`).
 2. A painted sky: a time-of-day gradient behind the scene (the renderer has
    backgrounds), filled clouds, a glow from lit windows at night.
-3. Observances that are not days off, per country, and a half-mast flag on days of
-   mourning.
-4. The rain overhaul: rain behind the house as well as in front, splashes on the roof
+3. The rain overhaul: rain behind the house as well as in front, splashes on the roof
    and grass, and a few rain sheets.
-5. More languages behind `language = "..."` (every word is in `src/text.rs` and the
+4. More languages behind `language = "..."` (every word is in `src/text.rs` and the
    greetings in `src/events/`).
-6. More countries: a country is a block of holidays in `docs/holidays/` plus a row in
-   `src/events/country.rs`.
+5. More countries: a country is a block of holidays in `docs/holidays/`, a row in
+   `src/events/country.rs`, a flag in `src/animation/holidays/flagpole.rs` and a few
+   border anchors in `src/events/assets/places.txt` (see group-d to group-f for the brief).

@@ -84,6 +84,8 @@ pub const HELP_OWN_DAYS: &str = "Own days";
 pub const HELP_DATA: &str = "Data";
 pub const HELP_VERSION: &str = "Version";
 pub const HELP_YEARLY_ONLY: &str = "the yearly ones only";
+pub const LISTING_OBSERVANCES: &str =
+    "Observances, not days off ([events] observances = false hides them):";
 
 pub const TAKBIRAN_NIGHT: &str = "Takbiran Night";
 pub const CHINESE_NEW_YEARS_EVE: &str = "Chinese New Year's Eve";
