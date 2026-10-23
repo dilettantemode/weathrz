@@ -510,7 +510,14 @@ characters = []    # empty = all 9: caped-hero ufo moon-biker broom-rider fairy 
 specials = 12      # about one flight in 12 is a character; 0 = no characters
 every = "calm"     # calm (2-3 min) | normal (~1 min) | busy (20-40 s) | seconds, e.g. 90
 banner = ""        # text towed by the banner plane; empty = your city
+painted = false    # true paints the sky behind the scene (truecolor or 256-colour terminals)
 ```
+
+`painted = true` fills the sky with a gradient that follows the sun: deep navy at night,
+purple then amber low down at dusk and dawn, blue by day, greyer under cloud, rain or
+fog. Clouds get a lighter body, the house stands as a silhouette in your terminal's own
+background, and its windows glow amber after sunset. It is off by default because it
+paints over your terminal's background colour; 16-colour terminals keep the plain sky.
 
 Flyers keep to their hours (`--list-flyers` shows each one): the small planes, the banner
 plane, the biplane, the broom rider, the little dragon and the pterosaur fly by day; the UFO, the fairy

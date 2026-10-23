@@ -9,6 +9,7 @@ use rand::{Rng, RngExt};
 use std::io;
 use std::sync::OnceLock;
 
+const CLOUD_FILL: f32 = 0.18;
 const CLOUD_SHAPE_SRCS: [&str; 4] = [
     include_str!("assets/cloud_0.txt"),
     include_str!("assets/cloud_1.txt"),
@@ -203,6 +204,15 @@ impl CloudSystem {
                         visible,
                         cloud.color,
                     )?;
+                    let drawn =
+                        |at: Option<usize>| at.map(|column| x.max(0) as u16 + column as u16);
+                    let first = drawn(visible.find(|ch: char| ch != ' '));
+                    let last = drawn(visible.rfind(|ch: char| ch != ' '));
+                    if let (Some(first), Some(last)) = (first, last) {
+                        for column in first..=last {
+                            renderer.tint(column, y as u16, cloud.color, CLOUD_FILL);
+                        }
+                    }
                 }
             }
         }

@@ -52,12 +52,14 @@ mod tests {
         let night = WorldSceneStyle::resolve(&SceneContext {
             garden: crate::scene::world::trees::default_garden(),
             colors: &colors.night,
+            glow_windows: false,
         });
         assert_eq!(night.roof, Color::DarkMagenta);
         assert_eq!(night.tree_foliage, Color::Rgb { r: 0, g: 50, b: 0 });
         let day = WorldSceneStyle::resolve(&SceneContext {
             garden: crate::scene::world::trees::default_garden(),
             colors: &colors.day,
+            glow_windows: false,
         });
         assert_eq!(day.roof, Color::DarkRed);
         assert_eq!(day.path, Color::Reset);

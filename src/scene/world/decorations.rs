@@ -273,6 +273,7 @@ mod tests {
                 &SceneContext {
                     colors: &colors,
                     garden,
+                    glow_windows: false,
                 },
             )
             .unwrap();

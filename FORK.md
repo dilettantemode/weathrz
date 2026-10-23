@@ -234,12 +234,10 @@ In rough order of value:
 1. Swap estimates for official dates as governments publish them: next year's lists
    come out between September and December, and Islamic days in countries that sight the
    moon can still move a day (see the notes in `docs/holidays/`).
-2. A painted sky: a time-of-day gradient behind the scene (the renderer has
-   backgrounds), filled clouds, a glow from lit windows at night.
-3. The rain overhaul: rain behind the house as well as in front, splashes on the roof
+2. The rain overhaul: rain behind the house as well as in front, splashes on the roof
    and grass, and a few rain sheets.
-4. More languages behind `language = "..."` (every word is in `src/text.rs` and the
+3. More languages behind `language = "..."` (every word is in `src/text.rs` and the
    greetings in `src/events/`).
-5. More countries: a country is a block of holidays in `docs/holidays/`, a row in
+4. More countries: a country is a block of holidays in `docs/holidays/`, a row in
    `src/events/country.rs`, a flag in `src/animation/holidays/flagpole.rs` and a few
    border anchors in `src/events/assets/places.txt` (see group-d to group-f for the brief).

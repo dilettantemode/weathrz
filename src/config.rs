@@ -186,6 +186,7 @@ pub struct SkyConfig {
     pub every: Option<String>,
     pub specials: Option<String>,
     pub banner: Option<String>,
+    pub painted: bool,
     pub warnings: Vec<String>,
 }
 
@@ -212,6 +213,13 @@ impl SkyConfig {
         config.every = table.get("every").cloned().map(value_text);
         config.specials = table.get("specials").cloned().map(value_text);
         config.banner = table.get("banner").cloned().map(value_text);
+        match table.get("painted") {
+            None => {}
+            Some(toml::Value::Boolean(painted)) => config.painted = *painted,
+            Some(other) => config.warnings.push(format!(
+                "sky.painted = {other} is not true or false; using false"
+            )),
+        }
         config
     }
 }
@@ -1155,7 +1163,13 @@ auto = false
         assert_eq!(config.sky.flyers, vec!["plane", "heli"]);
         assert_eq!(config.sky.every.as_deref(), Some("90"));
         assert_eq!(config.sky.banner.as_deref(), Some("Jakarta"));
+        assert!(!config.sky.painted);
         assert!(config.sky.warnings.is_empty());
+        let painted: Config = toml::from_str("[sky]\npainted = true\n").unwrap();
+        assert!(painted.sky.painted);
+        let odd: Config = toml::from_str("[sky]\npainted = \"yes\"\n").unwrap();
+        assert!(!odd.sky.painted);
+        assert!(odd.sky.warnings[0].contains("sky.painted"));
     }
 
     #[test]

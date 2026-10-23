@@ -41,6 +41,23 @@ fn wait_for_size(
     }
 }
 
+fn rgb(color: Color) -> Option<(u8, u8, u8)> {
+    match color {
+        Color::Rgb { r, g, b } => Some((r, g, b)),
+        _ => None,
+    }
+}
+
+pub fn mix(from: (u8, u8, u8), to: (u8, u8, u8), amount: f32) -> Color {
+    let channel =
+        |a: u8, b: u8| (f32::from(a) + (f32::from(b) - f32::from(a)) * amount).round() as u8;
+    Color::Rgb {
+        r: channel(from.0, to.0),
+        g: channel(from.1, to.1),
+        b: channel(from.2, to.2),
+    }
+}
+
 fn printable(ch: char) -> char {
     if ch.is_control() { '?' } else { ch }
 }
@@ -69,6 +86,8 @@ pub struct TerminalRenderer {
     buffer: Vec<Cell>,
     last_buffer: Vec<Cell>,
     capabilities: TerminalCapabilities,
+    solid: Vec<bool>,
+    sky: Vec<Color>,
 }
 
 impl TerminalRenderer {
@@ -94,6 +113,8 @@ impl TerminalRenderer {
             buffer: vec![Cell::default(); buffer_size],
             last_buffer: vec![Cell::default(); buffer_size],
             capabilities,
+            solid: vec![false; buffer_size],
+            sky: Vec::new(),
         })
     }
 
@@ -107,7 +128,19 @@ impl TerminalRenderer {
             buffer: vec![Cell::default(); buffer_size],
             last_buffer: vec![Cell::default(); buffer_size],
             capabilities: TerminalCapabilities::detect(),
+            solid: vec![false; buffer_size],
+            sky: Vec::new(),
         }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn headless_truecolor(width: u16, height: u16) -> Self {
+        let mut renderer = Self::headless(width, height);
+        renderer.capabilities = TerminalCapabilities {
+            color_support: capabilities::ColorSupport::TrueColor,
+            is_tty: false,
+        };
+        renderer
     }
 
     #[cfg(test)]
@@ -158,6 +191,7 @@ impl TerminalRenderer {
             let buffer_size = (width as usize) * (height as usize);
             self.buffer = vec![Cell::default(); buffer_size];
             self.last_buffer = vec![Cell::default(); buffer_size];
+            self.solid = vec![false; buffer_size];
             execute!(self.stdout, Clear(ClearType::All))?;
         }
         Ok(())
@@ -169,7 +203,70 @@ impl TerminalRenderer {
 
     pub fn clear(&mut self) -> io::Result<()> {
         self.buffer.fill(Cell::default());
+        self.solid.fill(false);
+        self.sky.clear();
         Ok(())
+    }
+
+    pub fn can_paint(&self) -> bool {
+        matches!(
+            self.capabilities.color_support,
+            capabilities::ColorSupport::TrueColor | capabilities::ColorSupport::Ansi256
+        )
+    }
+
+    fn index(&self, x: u16, y: u16) -> Option<usize> {
+        (x < self.width && y < self.height)
+            .then(|| (y as usize) * (self.width as usize) + (x as usize))
+            .filter(|idx| *idx < self.buffer.len())
+    }
+
+    pub fn paint_backdrop(&mut self, rows: &[Color]) {
+        self.sky = rows.iter().take(self.height as usize).copied().collect();
+        let width = self.width as usize;
+        for (y, color) in self.sky.iter().enumerate() {
+            let color = self.capabilities.adjust_background(*color);
+            for idx in y * width..(y + 1) * width {
+                if !self.solid[idx] {
+                    self.buffer[idx].background = color;
+                }
+            }
+        }
+    }
+
+    pub fn mark_solid(&mut self, x: u16, y: u16) {
+        if let Some(idx) = self.index(x, y) {
+            self.solid[idx] = true;
+            self.buffer[idx].background = Color::Reset;
+        }
+    }
+
+    pub fn tint(&mut self, x: u16, y: u16, toward: Color, amount: f32) {
+        let Some(idx) = self.index(x, y).filter(|idx| !self.solid[*idx]) else {
+            return;
+        };
+        if let Some(sky) = self.sky.get(y as usize).copied().and_then(rgb)
+            && let Some(toward) = rgb(toward)
+        {
+            self.buffer[idx].background = self
+                .capabilities
+                .adjust_background(mix(sky, toward, amount));
+        }
+    }
+
+    pub fn set_background(&mut self, x: u16, y: u16, color: Color) {
+        if self.sky.iter().all(|row| *row == Color::Reset) {
+            return;
+        }
+        if let Some(idx) = self.index(x, y) {
+            self.buffer[idx].background = self.capabilities.adjust_background(color);
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn background_at(&self, x: u16, y: u16) -> Color {
+        self.index(x, y)
+            .map_or(Color::Reset, |idx| self.buffer[idx].background)
     }
 
     pub fn render_centered_colored(
@@ -207,7 +304,7 @@ impl TerminalRenderer {
                             self.buffer[buffer_idx] = Cell {
                                 character: printable(ch),
                                 color: adjusted_color,
-                                background: Color::Reset,
+                                background: self.buffer[buffer_idx].background,
                             };
                         }
                     }
@@ -238,7 +335,7 @@ impl TerminalRenderer {
                     self.buffer[buffer_idx] = Cell {
                         character: printable(ch),
                         color: adjusted_color,
-                        background: Color::Reset,
+                        background: self.buffer[buffer_idx].background,
                     };
                 }
             }
@@ -261,10 +358,15 @@ impl TerminalRenderer {
         if x < self.width && y < self.height {
             let buffer_idx = (y as usize) * (self.width as usize) + (x as usize);
             if buffer_idx < self.buffer.len() {
+                let background = if background == Color::Reset {
+                    self.buffer[buffer_idx].background
+                } else {
+                    self.capabilities.adjust_background(background)
+                };
                 self.buffer[buffer_idx] = Cell {
                     character: printable(ch),
                     color: self.capabilities.adjust_color(color),
-                    background: self.capabilities.adjust_background(background),
+                    background,
                 };
             }
         }

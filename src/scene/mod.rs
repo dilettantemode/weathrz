@@ -1,4 +1,5 @@
 pub mod overlay;
+pub mod sky_paint;
 pub mod world;
 
 use crate::render::TerminalRenderer;
@@ -9,6 +10,7 @@ use std::io;
 pub struct SceneContext<'a> {
     pub colors: &'a ElementColors,
     pub garden: crate::scene::world::trees::Garden,
+    pub glow_windows: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

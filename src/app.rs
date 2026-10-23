@@ -343,6 +343,7 @@ pub struct App {
     help_open: bool,
     help_rows: Vec<String>,
     details_open: bool,
+    painted_sky: bool,
     moon_cache: Option<(MoonKey, Option<astro::MoonSky>)>,
     last_refresh: Option<Instant>,
 }
@@ -501,6 +502,7 @@ impl App {
             help_open: false,
             help_rows: crate::help::rows(&[]),
             details_open: false,
+            painted_sky: config.sky.painted,
             moon_cache: None,
             last_refresh: None,
         }
@@ -778,9 +780,26 @@ impl App {
         scene.update_size(term_width, term_height);
 
         let layout = scene.layout();
+        let painted = self.painted_sky && renderer.can_paint();
+        let is_day = self.state.weather_conditions.sun.is_day;
+        if painted {
+            let condition = self
+                .state
+                .current_weather
+                .as_ref()
+                .map_or(WeatherCondition::Clear, |weather| weather.condition);
+            renderer.paint_backdrop(&crate::scene::sky_paint::sky_rows(
+                term_height,
+                layout.ground_y,
+                self.state.sun_sky.map(|sky| sky.elevation_deg),
+                is_day,
+                condition,
+            ));
+        }
         let ctx = SceneContext {
             colors: &colors,
             garden,
+            glow_windows: painted && !is_day && !active_events.calm(),
         };
         let frame = FrameInputs {
             conditions: &self.state.weather_conditions,

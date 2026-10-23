@@ -89,7 +89,8 @@ impl Scene for WorldScene {
             &ctx.garden.yard,
             &style,
         )?;
-        self.house.render(renderer, house_x, house_y, &style)?;
+        self.house
+            .render(renderer, house_x, house_y, &style, ctx.glow_windows)?;
         self.decorations.render(
             renderer,
             &DecorationLayout {

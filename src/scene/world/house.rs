@@ -4,6 +4,8 @@ use std::io;
 
 const HOUSE_ASCII: &str = include_str!("assets/house.txt");
 const VERANDA_FROM: usize = 28;
+const BODY_RIGHT: usize = 29;
+const WINDOW_GLOW: (u8, u8, u8) = (64, 48, 24);
 
 pub struct House;
 
@@ -46,9 +48,13 @@ impl House {
         x: u16,
         y: u16,
         style: &WorldSceneStyle,
+        glow_windows: bool,
     ) -> io::Result<()> {
         for (i, line) in HOUSE_ASCII.lines().enumerate() {
             let row = y + i as u16;
+            for column in solid_columns(i, line) {
+                renderer.mark_solid(x + column as u16, row);
+            }
 
             match i {
                 // Chimney top + roof slopes
@@ -79,6 +85,14 @@ impl House {
                                 _ => style.wood,
                             };
                             renderer.render_char(x + j as u16, row, ch, color)?;
+                            if glow_windows && matches!(ch, '[' | ']') {
+                                let (r, g, b) = WINDOW_GLOW;
+                                renderer.set_background(
+                                    x + j as u16,
+                                    row,
+                                    crossterm::style::Color::Rgb { r, g, b },
+                                );
+                            }
                         }
                     }
                 }
@@ -116,9 +130,64 @@ impl House {
     }
 }
 
+fn solid_columns(row: usize, line: &str) -> Vec<usize> {
+    let drawn: Vec<usize> = line
+        .char_indices()
+        .filter(|(_, ch)| *ch != ' ')
+        .map(|(column, _)| column)
+        .collect();
+    let (Some(&first), Some(&last)) = (drawn.first(), drawn.last()) else {
+        return Vec::new();
+    };
+    let last = match row {
+        0 => return drawn,
+        5..=8 => last.min(BODY_RIGHT),
+        _ => last,
+    };
+    let mut columns: Vec<usize> = (first..=last).collect();
+    columns.extend(drawn.into_iter().filter(|column| *column > last));
+    columns
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_house_hides_the_painted_sky_but_the_veranda_lets_it_through() {
+        let mut renderer = TerminalRenderer::headless_truecolor(70, 12);
+        let sky = crossterm::style::Color::Rgb {
+            r: 20,
+            g: 40,
+            b: 90,
+        };
+        renderer.paint_backdrop(&[sky; 12]);
+        let style = WorldSceneStyle::resolve(&crate::scene::SceneContext {
+            colors: &crate::theme::ThemeRegistry::new().active().colors.night,
+            garden: crate::scene::world::trees::default_garden(),
+            glow_windows: true,
+        });
+        House.render(&mut renderer, 0, 0, &style, true).unwrap();
+        let reset = crossterm::style::Color::Reset;
+        assert_eq!(renderer.background_at(10, 6), reset, "inside the wall");
+        assert_eq!(renderer.background_at(2, 6), sky, "left of the house");
+        assert_eq!(renderer.background_at(40, 5), sky, "above the veranda");
+        assert_eq!(renderer.background_at(31, 8), reset, "a veranda post");
+        assert_eq!(
+            renderer.background_at(13, 0),
+            sky,
+            "between chimney and peak"
+        );
+        let window = HOUSE_ASCII.lines().nth(5).unwrap().find('[').unwrap() as u16;
+        assert_eq!(
+            renderer.background_at(window, 5),
+            crossterm::style::Color::Rgb {
+                r: 64,
+                g: 48,
+                b: 24
+            }
+        );
+    }
 
     #[test]
     fn the_eave_row_is_the_line_of_tildes() {
