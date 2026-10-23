@@ -42,10 +42,7 @@ fn wait_for_size(
 }
 
 fn rgb(color: Color) -> Option<(u8, u8, u8)> {
-    match color {
-        Color::Rgb { r, g, b } => Some((r, g, b)),
-        _ => None,
-    }
+    capabilities::approx_rgb(color)
 }
 
 pub fn mix(from: (u8, u8, u8), to: (u8, u8, u8), amount: f32) -> Color {
@@ -209,10 +206,7 @@ impl TerminalRenderer {
     }
 
     pub fn can_paint(&self) -> bool {
-        matches!(
-            self.capabilities.color_support,
-            capabilities::ColorSupport::TrueColor | capabilities::ColorSupport::Ansi256
-        )
+        self.capabilities.color_support == capabilities::ColorSupport::TrueColor
     }
 
     fn index(&self, x: u16, y: u16) -> Option<usize> {
@@ -222,7 +216,9 @@ impl TerminalRenderer {
     }
 
     pub fn paint_backdrop(&mut self, rows: &[Color]) {
-        self.sky = rows.iter().take(self.height as usize).copied().collect();
+        self.sky.clear();
+        self.sky
+            .extend(rows.iter().take(self.height as usize).copied());
         let width = self.width as usize;
         for (y, color) in self.sky.iter().enumerate() {
             let color = self.capabilities.adjust_background(*color);
@@ -255,7 +251,7 @@ impl TerminalRenderer {
     }
 
     pub fn set_background(&mut self, x: u16, y: u16, color: Color) {
-        if self.sky.iter().all(|row| *row == Color::Reset) {
+        if self.sky.is_empty() {
             return;
         }
         if let Some(idx) = self.index(x, y) {
@@ -510,6 +506,33 @@ mod tests {
         )
         .unwrap();
         assert_eq!(size, (0, 0));
+    }
+
+    #[test]
+    fn the_painted_sky_survives_drawing_and_tints_toward_named_colours() {
+        let mut renderer = TerminalRenderer::headless_truecolor(10, 3);
+        let sky = Color::Rgb {
+            r: 20,
+            g: 40,
+            b: 90,
+        };
+        renderer.paint_backdrop(&[sky, sky, Color::Reset]);
+        renderer.render_char(1, 0, '*', Color::White).unwrap();
+        assert_eq!(renderer.background_at(1, 0), sky);
+        renderer.tint(2, 0, Color::White, 0.5);
+        assert_eq!(
+            renderer.background_at(2, 0),
+            Color::Rgb {
+                r: 138,
+                g: 148,
+                b: 173
+            }
+        );
+        renderer.mark_solid(3, 1);
+        renderer.tint(3, 1, Color::White, 0.5);
+        assert_eq!(renderer.background_at(3, 1), Color::Reset);
+        assert_eq!(renderer.background_at(4, 2), Color::Reset);
+        assert!(!TerminalRenderer::headless(10, 3).can_paint());
     }
 
     #[test]

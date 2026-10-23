@@ -19,6 +19,7 @@ pub struct Facts<'a> {
     pub sun: Option<SunSky>,
     pub sun_times: Option<(NaiveTime, NaiveTime)>,
     pub moon_phase: Option<f64>,
+    pub now: NaiveDateTime,
 }
 
 pub fn sun_times(
@@ -88,13 +89,12 @@ fn condition_of(code: i32) -> WeatherCondition {
     crate::weather::normalizer::WeatherNormalizer::wmo_code_to_condition(code)
 }
 
-pub fn hours_ahead(weather: &WeatherData) -> Vec<(NaiveDateTime, &HourPoint)> {
-    let now = parse(&weather.timestamp);
+pub fn hours_ahead(weather: &WeatherData, now: NaiveDateTime) -> Vec<(NaiveDateTime, &HourPoint)> {
     weather
         .outlook
         .iter()
         .filter_map(|point| Some((parse(&point.time)? - Duration::hours(1), point)))
-        .filter(|(start, _)| now.is_none_or(|now| *start + Duration::hours(1) > now))
+        .filter(|(start, _)| *start + Duration::hours(1) > now)
         .take(HOURS_SHOWN)
         .collect()
 }
@@ -198,7 +198,7 @@ pub fn rows(facts: &Facts<'_>) -> Vec<(String, String)> {
             ),
         ));
     }
-    let hours = hours_ahead(weather);
+    let hours = hours_ahead(weather, facts.now);
     if !hours.is_empty() {
         out.push((String::new(), String::new()));
         out.push((text::DETAILS_NEXT_HOURS.to_string(), String::new()));
@@ -255,6 +255,7 @@ pub fn json(
     weather: &WeatherData,
     (place, latitude, longitude): (Option<String>, Option<f64>, Option<f64>),
     sun_times: Option<(NaiveTime, NaiveTime)>,
+    (now, moon_phase): (NaiveDateTime, f64),
     age_secs: Option<u64>,
     greeting: Option<String>,
 ) -> JsonReading {
@@ -277,12 +278,10 @@ pub fn json(
         is_day: weather.sun.is_day,
         sunrise: sun_times.map(|(rise, _)| rise.format("%H:%M").to_string()),
         sunset: sun_times.map(|(_, set)| set.format("%H:%M").to_string()),
-        moon_phase: weather
-            .moon_phase
-            .map(|phase| (phase * 1000.0).round() / 1000.0),
-        moon: weather.moon_phase.map(moon_name),
+        moon_phase: Some((moon_phase * 1000.0).round() / 1000.0),
+        moon: Some(moon_name(moon_phase)),
         greeting,
-        hours: hours_ahead(weather)
+        hours: hours_ahead(weather, now)
             .into_iter()
             .map(|(start, point)| JsonHour {
                 from: start.format("%Y-%m-%dT%H:%M").to_string(),
@@ -327,6 +326,10 @@ mod tests {
         }
     }
 
+    fn at(text: &str) -> NaiveDateTime {
+        NaiveDateTime::parse_from_str(text, "%Y-%m-%dT%H:%M").unwrap()
+    }
+
     fn lines(facts: &Facts<'_>) -> Vec<String> {
         rows(facts)
             .into_iter()
@@ -351,6 +354,7 @@ mod tests {
             sun: Some(sun),
             sun_times: weather.sun.rise.zip(weather.sun.set),
             moon_phase: weather.moon_phase,
+            now: at("2026-10-23T14:20"),
         });
         assert_eq!(
             card[..8],
@@ -384,6 +388,7 @@ mod tests {
             sun: None,
             sun_times: None,
             moon_phase: None,
+            now: at("2026-10-23T14:20"),
         });
         assert_eq!(
             card,
@@ -441,6 +446,7 @@ mod tests {
             &weather,
             (Some("Jakarta".to_string()), Some(-6.2), Some(106.8)),
             weather.sun.rise.zip(weather.sun.set),
+            (at("2026-10-23T14:20"), 0.37),
             None,
             None,
         ))

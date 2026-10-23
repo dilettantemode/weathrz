@@ -527,9 +527,8 @@ impl App {
                 self.clock.now(),
                 self.clock.now_utc(),
             ),
-            moon_phase: weather
-                .moon_phase
-                .or_else(|| Some(astro::moon_phase(self.clock.now_utc()))),
+            moon_phase: Some(astro::moon_phase(self.clock.now_utc())),
+            now: self.clock.now(),
         }))
     }
 
@@ -791,7 +790,10 @@ impl App {
             renderer.paint_backdrop(&crate::scene::sky_paint::sky_rows(
                 term_height,
                 layout.ground_y,
-                self.state.sun_sky.map(|sky| sky.elevation_deg),
+                self.state
+                    .sun_sky
+                    .filter(|_| !self.force_night)
+                    .map(|sky| sky.elevation_deg),
                 is_day,
                 condition,
             ));
@@ -863,7 +865,11 @@ impl App {
             let lines = crate::help::framed(title, &rows, term_width, term_height);
             let top = term_height.saturating_sub(lines.len() as u16) / 2;
             for (row, line) in lines.iter().enumerate() {
-                let x = term_width.saturating_sub(line.chars().count() as u16) / 2;
+                let width = line.chars().count() as u16;
+                let x = term_width.saturating_sub(width) / 2;
+                for column in x..x + width {
+                    renderer.mark_solid(column, top + row as u16);
+                }
                 renderer.render_line_colored(x, top + row as u16, line, colors.hud)?;
             }
         }
@@ -1877,7 +1883,7 @@ mod tests {
             "Clear · 20.0°C",
             "10.0 km/h from the SW",
             "| Sun       rise ",
-            "full moon · 100% lit",
+            "waxing gibbous",
         ] {
             assert!(text.contains(shown), "{shown}\n{text}");
         }

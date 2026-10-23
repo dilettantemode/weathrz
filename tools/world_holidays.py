@@ -194,6 +194,7 @@ UNTIL_HOUR = {
     "us:memorial_day_half_mast": 12,
     "au:anzac_day_half_mast": 12,
 }
+UNTIL_HOUR_LAST_YEAR = 2048
 
 SKIP = {
     ("christmas", 12, 25), ("christmas_day", 12, 25), ("new_years_day", 1, 1), ("new_year", 1, 1),
@@ -251,8 +252,14 @@ def main():
         except (ValueError, KeyError, IndexError) as error:
             raise SystemExit(f"{key}: bad rule {rule_text!r}: {error}")
         rust_dates = None
+        researched = [day for dates in by_year.values() for day in dates]
         until = UNTIL_HOUR.get(key)
         if until:
+            if rule:
+                _, compute = rule
+                for year in range(max(by_year) + 1, UNTIL_HOUR_LAST_YEAR + 1):
+                    by_year[year] = [compute(year)]
+                notes.append(f"{key}: ends at {until}:00, so its rule is tabled through {UNTIL_HOUR_LAST_YEAR}")
             rule = None
         if rule:
             rust_rule, compute = rule
@@ -300,8 +307,7 @@ def main():
         )
         if holiday.get("observance", False):
             observances.append(key)
-        every_date = [day for dates in by_year.values() for day in dates]
-        checks.append(f"    ({rust_string(key)}, &[{', '.join(rust_string(d.isoformat()) for d in every_date)}]),")
+        checks.append(f"    ({rust_string(key)}, &[{', '.join(rust_string(d.isoformat()) for d in researched)}]),")
         source = holiday.get("source", "")
         urls = source if isinstance(source, list) else str(source).replace(";", " ").replace(",", " ").split()
         for url in urls:

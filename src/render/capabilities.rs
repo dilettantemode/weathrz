@@ -123,6 +123,29 @@ pub fn nearest_256(r: u8, g: u8, b: u8) -> u8 {
     }
 }
 
+pub fn approx_rgb(color: Color) -> Option<(u8, u8, u8)> {
+    match color {
+        Color::Rgb { r, g, b } => Some((r, g, b)),
+        Color::AnsiValue(n @ 16..=231) => {
+            let n = n - 16;
+            Some((
+                CUBE_LEVELS[usize::from(n / 36)],
+                CUBE_LEVELS[usize::from(n / 6 % 6)],
+                CUBE_LEVELS[usize::from(n % 6)],
+            ))
+        }
+        Color::AnsiValue(n @ 232..) => {
+            let level = 8 + 10 * (n - 232);
+            Some((level, level, level))
+        }
+        Color::AnsiValue(n) => BASIC.get(usize::from(n)).map(|(_, rgb)| *rgb),
+        named => BASIC
+            .iter()
+            .find(|(basic, _)| *basic == named)
+            .map(|(_, rgb)| *rgb),
+    }
+}
+
 pub fn nearest_basic(r: u8, g: u8, b: u8) -> Color {
     BASIC
         .iter()

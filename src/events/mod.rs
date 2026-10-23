@@ -520,12 +520,23 @@ impl ActiveEvents {
     }
 
     pub fn greetings(&self) -> Vec<(&'static EventDef, String)> {
-        self.events
+        let all: Vec<(&'static EventDef, String)> = self
+            .events
             .iter()
             .filter_map(|def| {
                 greeting_at(def, self.now, self.country, self.place).map(|text| (*def, text))
             })
-            .collect()
+            .collect();
+        let day_off = all
+            .iter()
+            .any(|(def, _)| def.country().is_some() && !is_observance(def));
+        if day_off {
+            all.into_iter()
+                .filter(|(def, _)| !is_observance(def))
+                .collect()
+        } else {
+            all
+        }
     }
 
     pub fn greeting(&self) -> Option<(&'static EventDef, String)> {
@@ -1052,8 +1063,8 @@ pub fn resolve(now: NaiveDateTime, settings: &EventSettings) -> ActiveEvents {
         .catalogue()
         .enumerate()
         .filter(|(_, def)| {
-            settings.allows(def.id)
-                && def.belongs_to(settings.country)
+            def.belongs_to(settings.country)
+                && settings.allows(def.id)
                 && is_active_at(def, now, settings.place)
         })
         .collect();
@@ -1728,6 +1739,24 @@ mod tests {
                 .map(|(def, _)| def.id),
             Some("us:groundhog_day")
         );
+    }
+
+    #[test]
+    fn an_observance_on_a_day_off_does_not_share_the_greeting() {
+        let (mut egypt, _) = EventSettings::from_config(&crate::config::EventsConfig {
+            country: "EG".to_string(),
+            ..crate::config::EventsConfig::default()
+        });
+        egypt.locate(30.04, 31.24);
+        let active = resolve(at("2026-03-21T10:00"), &egypt);
+        assert!(active.contains("eg:mothers_day"));
+        let ids: Vec<&str> = active.greetings().iter().map(|(def, _)| def.id).collect();
+        assert!(ids.contains(&"eg:eid_al_fitr"), "{ids:?}");
+        assert!(!ids.contains(&"eg:mothers_day"), "{ids:?}");
+        let us = resolve(at("2026-05-25T09:00"), &EventSettings::in_country("US"));
+        assert!(us.has(Look::HalfMast), "the twin still lowers the flag");
+        let ids: Vec<&str> = us.greetings().iter().map(|(def, _)| def.id).collect();
+        assert_eq!(ids, ["us:memorial_day"]);
     }
 
     #[test]

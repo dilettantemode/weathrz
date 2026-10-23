@@ -38,7 +38,7 @@ struct Hourly {
 }
 
 impl Hourly {
-    fn points(self) -> Vec<HourPoint> {
+    fn points(self, unit: PrecipitationUnit) -> Vec<HourPoint> {
         self.time
             .into_iter()
             .enumerate()
@@ -56,12 +56,14 @@ impl Hourly {
                     .copied()
                     .flatten()
                     .map_or(0, |value| value.round() as i32),
-                precipitation: self
-                    .precipitation
-                    .get(index)
-                    .copied()
-                    .flatten()
-                    .unwrap_or(0.0),
+                precipitation: normalize_precipitation(
+                    self.precipitation
+                        .get(index)
+                        .copied()
+                        .flatten()
+                        .unwrap_or(0.0),
+                    unit,
+                ),
             })
             .collect()
     }
@@ -212,7 +214,10 @@ impl WeatherProvider for OpenMeteoProvider {
                 .apparent_temperature
                 .map(|value| normalize_temperature(value, units.temperature)),
             uv_index: data.current.uv_index,
-            outlook: data.hourly.map(Hourly::points).unwrap_or_default(),
+            outlook: data
+                .hourly
+                .map(|hourly| hourly.points(units.precipitation))
+                .unwrap_or_default(),
         })
     }
 }
@@ -287,7 +292,14 @@ mod tests {
         .unwrap();
         assert_eq!(data.current.apparent_temperature, Some(36.4));
         assert_eq!(data.current.uv_index, Some(7.55));
-        let points = data.hourly.unwrap().points();
+        let inches: OpenMeteoResponse = serde_json::from_str(
+            r#"{"current":{"time":"2026-10-21T11:45","temperature_2m":88.0,"is_day":1,"precipitation":0.0,"weather_code":2,"wind_speed_10m":5.0,"wind_direction_10m":200.0},
+                "hourly":{"time":["2026-10-21T12:00"],"precipitation_probability":[80],"weather_code":[63],"precipitation":[0.12]}}"#,
+        )
+        .unwrap();
+        let wet = inches.hourly.unwrap().points(PrecipitationUnit::Inch);
+        assert!((wet[0].precipitation - 3.048).abs() < 1e-9, "{wet:?}");
+        let points = data.hourly.unwrap().points(PrecipitationUnit::Mm);
         assert_eq!(
             points,
             vec![

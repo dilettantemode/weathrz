@@ -374,6 +374,7 @@ async fn main() -> io::Result<()> {
                         clock.now(),
                         clock.now_utc(),
                     ),
+                    (clock.now(), weathr::astro::moon_phase(clock.now_utc())),
                     age,
                     greeting.map(|greeting| greeting.text),
                 );

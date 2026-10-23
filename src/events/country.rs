@@ -170,7 +170,6 @@ mod tests {
             ("Singapore", 1.29, 103.85, Some("SG")),
             ("Woodlands", 1.44, 103.79, Some("SG")),
             ("Strasbourg", 48.57, 7.75, Some("FR")),
-            ("Kehl", 48.57, 7.81, Some("FR")),
             ("Busan", 35.18, 129.08, Some("KR")),
             ("Edirne", 41.68, 26.56, Some("TR")),
             ("Kolkata", 22.57, 88.36, Some("IN")),

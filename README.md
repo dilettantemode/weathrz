@@ -69,7 +69,7 @@ holiday tables): [FORK.md](FORK.md).
   moon's terminator is cut at the angle you see it (a boat near the equator).
 - Rain in two depths: far rain falls behind the house and splashes on the roof and the
   grass line, near rain falls in front and puddles across the yard, and heavy rain
-  sweeps through in sheets. Lightning grows down from the clouds over a few frames and
+  sweeps through in sheets. Lightning grows down the sky over a few frames and
   often flickers twice. An optional painted sky (`[sky] painted = true`) sits behind it all.
 - A Unicode sky by default (box-line rain, ✦ stars, ❄ snow, ░ fog, solid flags and a
   block-drawn moon; `glyphs = "ascii"` turns it off); correct 256- and 16-colour
@@ -378,8 +378,9 @@ Tables are updated in `docs/holidays/`, then `python3 tools/world_holidays.py`
 with greetings overlap, the bar takes turns every 10 seconds, in this order: your own
 days, the New Year countdown, then the country's own days (the shorter or moon-dated one
 first; Indonesia's in its own order: Nyepi, the Islamic days, Waisak, the Easter days,
-the national days, Imlek, Ramadan), then Halloween and Christmas. Decorations of all of
-them show together. Long greetings shorten to the part before the dot when the bar is
+the national days, Imlek, Ramadan), then Halloween and Christmas. An observance greets
+only when no day off of the country does. Decorations of all of them show together, so a
+half-mast flag still flies on US Memorial Day morning under the holiday's greeting. Long greetings shorten to the part before the dot when the bar is
 narrow.
 
 Events decorate but never change the weather: the sleigh, fireworks and lanterns stay
@@ -514,14 +515,15 @@ characters = []    # empty = all 9: caped-hero ufo moon-biker broom-rider fairy 
 specials = 12      # about one flight in 12 is a character; 0 = no characters
 every = "calm"     # calm (2-3 min) | normal (~1 min) | busy (20-40 s) | seconds, e.g. 90
 banner = ""        # text towed by the banner plane; empty = your city
-painted = false    # true paints the sky behind the scene (truecolor or 256-colour terminals)
+painted = false    # true paints the sky behind the scene (truecolor terminals)
 ```
 
 `painted = true` fills the sky with a gradient that follows the sun: deep navy at night,
 purple then amber low down at dusk and dawn, blue by day, greyer under cloud, rain or
 fog. Clouds get a lighter body, the house stands as a silhouette in your terminal's own
 background, and its windows glow amber after sunset. It is off by default because it
-paints over your terminal's background colour; 16-colour terminals keep the plain sky.
+paints over your terminal's background colour; 256- and 16-colour terminals keep the plain
+sky, since their palettes turn the dark sky colours grey.
 
 Flyers keep to their hours (`--list-flyers` shows each one): the small planes, the banner
 plane, the biplane, the broom rider, the little dragon and the pterosaur fly by day; the UFO, the fairy

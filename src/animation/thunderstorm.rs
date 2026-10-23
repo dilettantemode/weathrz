@@ -155,11 +155,11 @@ impl ThunderstormSystem {
                 if self.timer >= self.next_strike_in {
                     self.timer = 0;
 
-                    if self.generate_bolt(rng) {
-                        self.state = LightningState::Forming;
+                    self.state = if self.generate_bolt(rng) {
+                        LightningState::Forming
                     } else {
-                        self.next_strike_in = 30 + (rng.random::<u16>() % 200);
-                    }
+                        LightningState::Strike
+                    };
                 } else {
                     self.timer += 1;
                 }
@@ -310,13 +310,16 @@ mod tests {
     }
 
     #[test]
-    fn no_room_under_the_hud_means_no_bolt() {
-        let mut storm = ThunderstormSystem::new(110, 32);
+    fn with_no_room_above_the_roof_the_sky_still_flashes() {
+        let mut storm = ThunderstormSystem::new(80, 20);
         storm.next_strike_in = 0;
         let mut rng = StdRng::seed_from_u64(4);
+        let mut flashes = 0;
         for _ in 0..10 {
-            storm.update(110, 32, 3, &mut rng);
+            storm.update(80, 20, 3, &mut rng);
+            assert!(storm.bolts.is_empty());
+            flashes += usize::from(storm.flash_active);
         }
-        assert!(storm.bolts.is_empty());
+        assert!(flashes >= 1, "sheet lightning");
     }
 }

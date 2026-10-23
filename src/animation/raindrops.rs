@@ -55,6 +55,7 @@ struct Sheet {
 #[derive(Debug, Clone, Default, PartialEq)]
 struct Ground {
     horizon: u16,
+    door: Option<DoorAnchor>,
     roof_left: u16,
     roof: Vec<Option<u16>>,
 }
@@ -70,6 +71,7 @@ impl Ground {
         let house_y = door.ground_y.saturating_sub(House::HEIGHT);
         Self {
             horizon,
+            door: Some(door),
             roof_left: door.x.saturating_sub(House::DOOR_X_OFFSET),
             roof: House::roof_rows()
                 .into_iter()
@@ -401,8 +403,7 @@ impl AnimationSystem for RaindropSystem {
     }
 
     fn update(&mut self, ctx: &FrameContext<'_>, rng: &mut dyn Rng, _commands: &mut FrameCommands) {
-        if self.ground.horizon != ctx.horizon_y || self.ground.roof.is_empty() != ctx.door.is_none()
-        {
+        if self.ground.horizon != ctx.horizon_y || self.ground.door != ctx.door {
             self.ground = Ground::from(ctx.horizon_y, ctx.door);
         }
         self.update(ctx.size.width, ctx.size.height, rng);
@@ -513,6 +514,22 @@ mod tests {
             assert!(light.sheet.is_none() && far.sheet.is_none());
         }
         assert!(sheets >= 1);
+    }
+
+    #[test]
+    fn the_roof_line_follows_the_house_when_the_pane_widens() {
+        let narrow = Ground::from(25, Some(door()));
+        let wide = Ground::from(
+            25,
+            Some(DoorAnchor {
+                x: door().x + 55,
+                ..door()
+            }),
+        );
+        assert_eq!(narrow.roof_at(26.0), Some(25 - 10 + House::EAVE_ROW));
+        assert_eq!(wide.roof_at(26.0), None);
+        assert_eq!(wide.roof_at(81.0), narrow.roof_at(26.0));
+        assert_ne!(narrow, wide, "a moved door rebuilds the roof line");
     }
 
     #[test]

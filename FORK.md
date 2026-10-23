@@ -202,9 +202,11 @@ Small things left for later:
   Bahru vs Singapore, Amritsar vs Lahore) check `weathrz --list-events` and set
   `[events] country` if it guessed wrong. Hong Kong, Macau and countries outside
   the 24 get the yearly events only.
-- Japan's days are greetings only, and substitute days off (US observed days, UK
-  substitute bank holidays, Japan's furikae kyujitsu) are not shown: each holiday shows
-  on its own date.
+- Substitute days off (US observed days, UK substitute bank holidays, Japan's furikae
+  kyujitsu, Korea's daech'e gonghyuil) are not shown: each holiday shows on its own date.
+- The details card works out sunrise and sunset in this machine's time zone when the
+  provider sends none (Open-Meteo never does), while the hourly rows come in the
+  location's own zone; on a machine set to another zone the two disagree.
 - With `icons = "ascii"` on panes under about 90 columns, the bar drops a long holiday
   greeting to keep the weather; with Nerd icons it shrinks to the icon.
 - Each flyer's hours are set by its `when` field in `src/animation/flyers/characters.rs`
