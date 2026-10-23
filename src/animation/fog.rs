@@ -165,7 +165,7 @@ impl FogSystem {
             {
                 let ch =
                     crate::glyphs::swap(self.glyphs, crate::glyphs::Element::Fog, wisp.character);
-                renderer.render_char(x as u16, y as u16, ch, colors[wisp.tier])?;
+                renderer.render_char_in_front(x as u16, y as u16, ch, colors[wisp.tier])?;
             }
         }
         Ok(())

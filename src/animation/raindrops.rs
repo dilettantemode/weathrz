@@ -327,7 +327,7 @@ impl RaindropSystem {
                     drop.character
                 };
                 let ch = crate::glyphs::swap(self.glyphs, crate::glyphs::Element::Rain, ch);
-                renderer.render_char(x as u16, y as u16, ch, drop_color)?;
+                renderer.render_char_in_front(x as u16, y as u16, ch, drop_color)?;
             }
         }
         for splash in &self.splashes {

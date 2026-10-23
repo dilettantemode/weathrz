@@ -154,7 +154,7 @@ impl SnowSystem {
 
             if x >= 0 && x < self.terminal_width as i16 && y >= 0 && y < self.terminal_height as i16
             {
-                renderer.render_char(
+                renderer.render_char_in_front(
                     x as u16,
                     y as u16,
                     crate::glyphs::swap(self.glyphs, crate::glyphs::Element::Snow, flake.character),

@@ -369,6 +369,31 @@ impl TerminalRenderer {
         Ok(())
     }
 
+    pub fn render_char_in_front(
+        &mut self,
+        x: u16,
+        y: u16,
+        ch: char,
+        color: Color,
+    ) -> io::Result<()> {
+        let Some(idx) = self.index(x, y) else {
+            return Ok(());
+        };
+        let under = self.buffer[idx];
+        match under.character {
+            '█' => {
+                self.buffer[idx] = Cell {
+                    character: printable(ch),
+                    color: self.capabilities.adjust_color(color),
+                    background: under.color,
+                };
+                Ok(())
+            }
+            '\u{2580}'..='\u{259f}' => Ok(()),
+            _ => self.render_char(x, y, ch, color),
+        }
+    }
+
     pub fn flash_screen(&mut self, color: Color) -> io::Result<()> {
         let flash_color = self.capabilities.adjust_color(color);
         for cell in &mut self.buffer {
@@ -506,6 +531,33 @@ mod tests {
         )
         .unwrap();
         assert_eq!(size, (0, 0));
+    }
+
+    #[test]
+    fn weather_in_front_of_a_solid_block_keeps_the_block_showing() {
+        let mut renderer = TerminalRenderer::headless_truecolor(4, 1);
+        let moon = Color::Rgb {
+            r: 200,
+            g: 210,
+            b: 240,
+        };
+        let rain = Color::Rgb {
+            r: 120,
+            g: 160,
+            b: 250,
+        };
+        renderer.render_char(0, 0, '█', moon).unwrap();
+        renderer.render_char(1, 0, '▙', moon).unwrap();
+        renderer.render_char_in_front(0, 0, '│', rain).unwrap();
+        renderer.render_char_in_front(1, 0, '│', rain).unwrap();
+        renderer.render_char_in_front(2, 0, '│', rain).unwrap();
+        assert_eq!(row(&renderer, 0), "│▙│ ");
+        assert_eq!(
+            renderer.background_at(0, 0),
+            moon,
+            "the streak sits on the moon"
+        );
+        assert_eq!(renderer.background_at(2, 0), Color::Reset);
     }
 
     #[test]
