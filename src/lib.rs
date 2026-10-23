@@ -7,6 +7,7 @@ pub mod cache;
 pub mod cli;
 pub mod clock;
 pub mod config;
+pub mod details;
 pub mod error;
 pub mod events;
 pub mod geolocation;

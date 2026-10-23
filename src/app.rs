@@ -342,6 +342,7 @@ pub struct App {
     idle_fps: u32,
     help_open: bool,
     help_rows: Vec<String>,
+    details_open: bool,
     moon_cache: Option<(MoonKey, Option<astro::MoonSky>)>,
     last_refresh: Option<Instant>,
 }
@@ -499,6 +500,7 @@ impl App {
             idle_fps: config.frame_rates().0.1,
             help_open: false,
             help_rows: crate::help::rows(&[]),
+            details_open: false,
             moon_cache: None,
             last_refresh: None,
         }
@@ -506,6 +508,27 @@ impl App {
 
     pub fn set_help(&mut self, info: &[(String, String)]) {
         self.help_rows = crate::help::rows(info);
+    }
+
+    fn details_rows(&self) -> Vec<String> {
+        let Some(weather) = self.state.current_weather.as_ref() else {
+            return vec![crate::text::LOADING.to_string()];
+        };
+        crate::help::aligned(&crate::details::rows(&crate::details::Facts {
+            weather,
+            units: &self.state.units,
+            aqi: self.state.fresh_aqi(SystemTime::now()),
+            sun: self.state.sun_sky,
+            sun_times: crate::details::provider_or_computed(
+                weather,
+                (self.state.location.latitude, self.state.location.longitude),
+                self.clock.now(),
+                self.clock.now_utc(),
+            ),
+            moon_phase: weather
+                .moon_phase
+                .or_else(|| Some(astro::moon_phase(self.clock.now_utc()))),
+        }))
     }
 
     fn refresh_now(&mut self) {
@@ -810,8 +833,15 @@ impl App {
             renderer.render_line_colored(2, 2, prompt, colors.hud_location)?;
         }
 
-        if self.help_open {
-            let lines = crate::help::framed(&self.help_rows, term_width, term_height);
+        let card = if self.help_open {
+            Some((crate::text::HELP_TITLE, self.help_rows.clone()))
+        } else if self.details_open {
+            Some((crate::text::DETAILS_TITLE, self.details_rows()))
+        } else {
+            None
+        };
+        if let Some((title, rows)) = card {
+            let lines = crate::help::framed(title, &rows, term_width, term_height);
             let top = term_height.saturating_sub(lines.len() as u16) / 2;
             for (row, line) in lines.iter().enumerate() {
                 let x = term_width.saturating_sub(line.chars().count() as u16) / 2;
@@ -920,8 +950,18 @@ impl App {
                         {
                             break;
                         }
-                        KeyCode::Char('?') => self.help_open = !self.help_open,
-                        KeyCode::Esc => self.help_open = false,
+                        KeyCode::Char('?') => {
+                            self.help_open = !self.help_open;
+                            self.details_open = false;
+                        }
+                        KeyCode::Char('i') | KeyCode::Char('I') => {
+                            self.details_open = !self.details_open;
+                            self.help_open = false;
+                        }
+                        KeyCode::Esc => {
+                            self.help_open = false;
+                            self.details_open = false;
+                        }
                         KeyCode::Char('r') | KeyCode::Char('R') => self.refresh_now(),
                         _ => {}
                     },
@@ -1803,6 +1843,25 @@ mod tests {
         assert!(!text.contains("* =="), "{text}");
         assert!(!text.contains("+-|"), "{text}");
         insta::assert_snapshot!(text);
+    }
+
+    #[test]
+    fn the_details_card_sits_over_the_scene() {
+        let mut app = snapshot_app("2026-10-20T10:00", 110, 32);
+        app.details_open = true;
+        let mut renderer = TerminalRenderer::headless(110, 32);
+        let mut rng = StdRng::seed_from_u64(7);
+        app.draw_frame(&mut renderer, &mut rng, "", None).unwrap();
+        let text = renderer.text();
+        for shown in [
+            "+- details -",
+            "Clear · 20.0°C",
+            "10.0 km/h from the SW",
+            "| Sun       rise ",
+            "full moon · 100% lit",
+        ] {
+            assert!(text.contains(shown), "{shown}\n{text}");
+        }
     }
 
     #[test]

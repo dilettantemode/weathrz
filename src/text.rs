@@ -43,7 +43,38 @@ pub const HELP_TITLE: &str = "weathrz";
 pub const HELP_KEYS: &[(&str, &str)] = &[
     ("q, Ctrl-C", "quit"),
     ("r", "fetch the weather now"),
+    ("i", "details: sun, moon, air, next hours"),
     ("?, Esc", "close this help"),
+];
+
+pub const DETAILS_TITLE: &str = "details";
+pub const DETAILS_NOW: &str = "Now";
+pub const DETAILS_AIR: &str = "Air";
+pub const DETAILS_SUN: &str = "Sun";
+pub const DETAILS_MOON: &str = "Moon";
+pub const DETAILS_NEXT_HOURS: &str = "Next hours";
+pub const FROM_THE: &str = "from the";
+pub const RISE: &str = "rise";
+pub const SET: &str = "set";
+pub const NOW: &str = "now";
+pub const OF_DAYLIGHT: &str = "of daylight";
+pub const UP_IN_THE: &str = "up in the";
+pub const BELOW_THE_HORIZON: &str = "below the horizon";
+pub const LIT: &str = "lit";
+pub const UV_LOW: &str = "low";
+pub const UV_MODERATE: &str = "moderate";
+pub const UV_HIGH: &str = "high";
+pub const UV_VERY_HIGH: &str = "very high";
+pub const UV_EXTREME: &str = "extreme";
+pub const MOON_PHASES: [&str; 8] = [
+    "new moon",
+    "waxing crescent",
+    "first quarter",
+    "waxing gibbous",
+    "full moon",
+    "waning gibbous",
+    "last quarter",
+    "waning crescent",
 ];
 pub const HELP_LOCATION: &str = "Location";
 pub const HELP_FROM: &str = "From";

@@ -70,8 +70,8 @@ holiday tables): [FORK.md](FORK.md).
   fallbacks; synchronized frames.
 - The bar shows the next likely rain ("rain ~13:00 · 69%"), feels-like when it differs,
   UV by day, humidity and US air quality; `[location] name` / `--location` take a place
-  name; `--locate`, `--where`; `?` help and `r` refresh keys; `--line` prints the bar
-  once for status bars.
+  name; `--locate`, `--where`; `?` help, `i` details and `r` refresh keys; `--line`
+  prints the bar once for status bars and `--json` the reading for scripts.
 - An in-app offer to switch when your IP location is far from the configured one
   (`[location] ip_check`).
 - Honest offline mode (the last reading with its age, quick retries), any pane size, and
@@ -453,6 +453,9 @@ weathrz --where
 
 # Print the bar once as a single line and exit (for tmux, zellij or a status bar)
 weathrz --line
+
+# Print the reading as JSON and exit (metric keys such as temperature_c and wind_kmh)
+weathrz --json
 ```
 
 `--line` reuses a reading under 10 minutes old, otherwise fetches once (8 s limit) and
@@ -537,6 +540,8 @@ half-drawn frame.
 - `Ctrl+C` - Exit
 - `?` - Help: the keys, your location and where it came from, whose holidays apply, the
   config and `events.toml` paths, and the data credits (`Esc` or `?` closes it)
+- `i` - Details: wind direction, UV and air-quality bands, sunrise, sunset and where the
+  sun stands now, the moon's phase, and the next six hours (`Esc` or `i` closes it)
 - `r` - Fetch the weather and air quality now
 
 ### Environment Variables

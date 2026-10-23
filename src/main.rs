@@ -88,7 +88,7 @@ async fn main() -> io::Result<()> {
             Config::default()
         }
     };
-    if cli.line || cli.where_am_i {
+    if cli.line || cli.json || cli.where_am_i {
         config.silent = true;
     }
     if let Some(query) = cli.locate.as_deref() {
@@ -345,7 +345,7 @@ async fn main() -> io::Result<()> {
         return Ok(());
     }
 
-    if cli.line {
+    if cli.line || cli.json {
         event_settings.locate(config.location.latitude, config.location.longitude);
         let greeting = events::resolve(clock.now(), &event_settings)
             .greeting_turning_every(LINE_GREETING_TURN_SECS)
@@ -359,6 +359,33 @@ async fn main() -> io::Result<()> {
             None => weathr::line::fetch(&config).await,
         };
         match reading {
+            Ok((weather, age)) if cli.json => {
+                let shown = !config.location.hide;
+                let reading = weathr::details::json(
+                    &weather,
+                    (
+                        config.location.city.clone().filter(|_| shown),
+                        shown.then_some(config.location.latitude),
+                        shown.then_some(config.location.longitude),
+                    ),
+                    weathr::details::provider_or_computed(
+                        &weather,
+                        (config.location.latitude, config.location.longitude),
+                        clock.now(),
+                        clock.now_utc(),
+                    ),
+                    age,
+                    greeting.map(|greeting| greeting.text),
+                );
+                match serde_json::to_string_pretty(&reading) {
+                    Ok(text) => println!("{text}"),
+                    Err(error) => {
+                        eprintln!("weathrz: {error}");
+                        std::process::exit(1);
+                    }
+                }
+                return Ok(());
+            }
             Ok((weather, age)) => {
                 println!(
                     "{}",

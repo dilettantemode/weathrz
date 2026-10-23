@@ -299,6 +299,19 @@ pub fn moon_sky(latitude: f64, longitude: f64, at: DateTime<Utc>) -> MoonSky {
 }
 
 pub fn sunset_after(latitude: f64, longitude: f64, from: DateTime<Utc>) -> Option<DateTime<Utc>> {
+    horizon_after(latitude, longitude, from, false)
+}
+
+pub fn sunrise_after(latitude: f64, longitude: f64, from: DateTime<Utc>) -> Option<DateTime<Utc>> {
+    horizon_after(latitude, longitude, from, true)
+}
+
+fn horizon_after(
+    latitude: f64,
+    longitude: f64,
+    from: DateTime<Utc>,
+    rising: bool,
+) -> Option<DateTime<Utc>> {
     let altitude = |when: DateTime<Utc>| {
         sun_sky(latitude, longitude, when).elevation_deg - (90.0 - SUNRISE_ZENITH_DEG)
     };
@@ -306,8 +319,13 @@ pub fn sunset_after(latitude: f64, longitude: f64, from: DateTime<Utc>) -> Optio
     let mut probe = from;
     for _ in 0..(24 * 60 / SCAN_STEP_MINUTES) {
         let later = probe + step;
-        if altitude(probe) > 0.0 && altitude(later) <= 0.0 {
-            return Some(crossing(&altitude, later, probe));
+        let (up, then_up) = (altitude(probe) > 0.0, altitude(later) > 0.0);
+        if up != then_up && then_up == rising {
+            return Some(if rising {
+                crossing(&altitude, probe, later)
+            } else {
+                crossing(&altitude, later, probe)
+            });
         }
         probe = later;
     }

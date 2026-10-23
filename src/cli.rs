@@ -93,6 +93,12 @@ pub struct Cli {
     )]
     pub line: bool,
 
+    #[arg(
+        long,
+        help = "Print the reading as JSON (metric keys, for scripts), then exit; reuses a reading under 10 minutes old"
+    )]
+    pub json: bool,
+
     #[arg(long, help = "Hide location coordinates in UI")]
     pub hide_location: bool,
 

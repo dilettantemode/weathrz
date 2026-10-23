@@ -1,4 +1,4 @@
-use crate::text::{HELP_KEYS as KEYS, HELP_TITLE as TITLE};
+use crate::text::HELP_KEYS as KEYS;
 const MIN_INNER: usize = 20;
 
 fn clip(text: &str, width: usize) -> String {
@@ -11,25 +11,32 @@ fn clip(text: &str, width: usize) -> String {
 }
 
 pub fn rows(info: &[(String, String)]) -> Vec<String> {
-    let label_width = KEYS
+    let mut pairs: Vec<(String, String)> = KEYS
         .iter()
-        .map(|(key, _)| key.len())
-        .chain(info.iter().map(|(label, _)| label.chars().count()))
-        .max()
-        .unwrap_or(0);
-    let mut out: Vec<String> = KEYS
-        .iter()
-        .map(|(key, what)| format!("{key:<label_width$}  {what}"))
+        .map(|(key, what)| (key.to_string(), what.to_string()))
         .collect();
-    out.push(String::new());
-    out.extend(
-        info.iter()
-            .map(|(label, value)| format!("{label:<label_width$}  {value}")),
-    );
-    out
+    pairs.push((String::new(), String::new()));
+    pairs.extend(info.iter().cloned());
+    aligned(&pairs)
 }
 
-pub fn framed(rows: &[String], width: u16, height: u16) -> Vec<String> {
+pub fn aligned(pairs: &[(String, String)]) -> Vec<String> {
+    let label_width = pairs
+        .iter()
+        .map(|(label, _)| label.chars().count())
+        .max()
+        .unwrap_or(0);
+    pairs
+        .iter()
+        .map(|(label, value)| {
+            format!("{label:<label_width$}  {value}")
+                .trim_end()
+                .to_string()
+        })
+        .collect()
+}
+
+pub fn framed(title: &str, rows: &[String], width: u16, height: u16) -> Vec<String> {
     let widest = rows
         .iter()
         .map(|row| row.chars().count())
@@ -42,7 +49,7 @@ pub fn framed(rows: &[String], width: u16, height: u16) -> Vec<String> {
         return Vec::new();
     }
     let room = (height as usize).saturating_sub(4);
-    let title = format!(" {TITLE} ");
+    let title = format!(" {title} ");
     let mut top = format!("+-{title}");
     top.push_str(&"-".repeat((inner + 1).saturating_sub(title.chars().count())));
     top.push('+');
@@ -76,21 +83,21 @@ mod tests {
     fn keys_come_first_then_the_facts_lined_up() {
         let rows = rows(&info());
         assert_eq!(rows[0], "q, Ctrl-C  quit");
-        assert_eq!(rows[3], "");
-        assert_eq!(rows[4], "Location   Jakarta (-6.2088, 106.8456)");
+        assert_eq!(rows[4], "");
+        assert_eq!(rows[5], "Location   Jakarta (-6.2088, 106.8456)");
     }
 
     #[test]
     fn the_box_is_square_and_clips_long_rows() {
         let rows = rows(&info());
-        let boxed = framed(&rows, 120, 30);
+        let boxed = framed("weathrz", &rows, 120, 30);
         let widths: Vec<usize> = boxed.iter().map(|line| line.chars().count()).collect();
         assert!(
             widths.windows(2).all(|pair| pair[0] == pair[1]),
             "{boxed:#?}"
         );
         assert!(boxed[0].starts_with("+- weathrz -"));
-        let narrow = framed(&rows, 30, 30);
+        let narrow = framed("weathrz", &rows, 30, 30);
         assert!(narrow.iter().all(|line| line.chars().count() <= 28));
         assert!(narrow.iter().any(|line| line.contains('~')));
     }
@@ -98,8 +105,8 @@ mod tests {
     #[test]
     fn a_short_pane_shows_what_fits_and_a_tiny_one_nothing() {
         let rows = rows(&info());
-        assert_eq!(framed(&rows, 120, 6).len(), 4);
-        assert!(framed(&rows, 120, 4).is_empty());
-        assert!(framed(&rows, 8, 30).is_empty());
+        assert_eq!(framed("weathrz", &rows, 120, 6).len(), 4);
+        assert!(framed("weathrz", &rows, 120, 4).is_empty());
+        assert!(framed("weathrz", &rows, 8, 30).is_empty());
     }
 }

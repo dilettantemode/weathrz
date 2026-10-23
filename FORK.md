@@ -191,8 +191,6 @@ Small things left for later:
   the roofline; a low moon keeps it home, and so do small panes.
 - A low moon (and the sun) can sit behind the house or the trees: they are drawn behind
   the scene, as they would be.
-- The sun's compass direction and the providers' sunrise and sunset times are computed
-  or fetched but not used yet.
 - Past 2028 the moon days are calculated (tentative, about a day either way) until the
   tables get the next year's dates (see "Update the holiday dates" below); Hindu
   festivals, India's Buddha Purnima and announced days (cuti bersama, Russia's New
@@ -238,12 +236,11 @@ In rough order of value:
    moon can still move a day (see the notes in `docs/holidays/`).
 2. A painted sky: a time-of-day gradient behind the scene (the renderer has
    backgrounds), filled clouds, a glow from lit windows at night.
-3. A details card on `i` (hourly outlook, sunrise and sunset, AQI band) and `--json`.
-4. Observances that are not days off, per country, and a half-mast flag on days of
+3. Observances that are not days off, per country, and a half-mast flag on days of
    mourning.
-5. The rain overhaul: rain behind the house as well as in front, splashes on the roof
+4. The rain overhaul: rain behind the house as well as in front, splashes on the roof
    and grass, and a few rain sheets.
-6. More languages behind `language = "..."` (every word is in `src/text.rs` and the
+5. More languages behind `language = "..."` (every word is in `src/text.rs` and the
    greetings in `src/events/`).
-7. More countries: a country is a block of holidays in `docs/holidays/` plus a row in
+6. More countries: a country is a block of holidays in `docs/holidays/` plus a row in
    `src/events/country.rs`.
