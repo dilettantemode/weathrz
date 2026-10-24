@@ -64,6 +64,7 @@ struct Cell {
     character: char,
     color: Color,
     background: Color,
+    fill: Color,
 }
 
 impl Default for Cell {
@@ -72,6 +73,7 @@ impl Default for Cell {
             character: ' ',
             color: Color::Reset,
             background: Color::Reset,
+            fill: Color::Reset,
         }
     }
 }
@@ -85,6 +87,7 @@ pub struct TerminalRenderer {
     capabilities: TerminalCapabilities,
     solid: Vec<bool>,
     sky: Vec<Color>,
+    sky_upper: Vec<Color>,
 }
 
 impl TerminalRenderer {
@@ -112,6 +115,7 @@ impl TerminalRenderer {
             capabilities,
             solid: vec![false; buffer_size],
             sky: Vec::new(),
+            sky_upper: Vec::new(),
         })
     }
 
@@ -127,6 +131,7 @@ impl TerminalRenderer {
             capabilities: TerminalCapabilities::detect(),
             solid: vec![false; buffer_size],
             sky: Vec::new(),
+            sky_upper: Vec::new(),
         }
     }
 
@@ -202,6 +207,7 @@ impl TerminalRenderer {
         self.buffer.fill(Cell::default());
         self.solid.fill(false);
         self.sky.clear();
+        self.sky_upper.clear();
         Ok(())
     }
 
@@ -230,6 +236,25 @@ impl TerminalRenderer {
         }
     }
 
+    pub fn paint_backdrop_halves(&mut self, upper: &[Color], lower: &[Color]) {
+        self.paint_backdrop(lower);
+        self.sky_upper.clear();
+        self.sky_upper
+            .extend(upper.iter().take(self.sky.len()).copied());
+        let width = self.width as usize;
+        for (y, color) in self.sky_upper.iter().enumerate() {
+            if *color == Color::Reset || self.sky.get(y) == Some(color) {
+                continue;
+            }
+            let color = self.capabilities.adjust_background(*color);
+            for idx in y * width..(y + 1) * width {
+                if !self.solid[idx] {
+                    self.buffer[idx].fill = color;
+                }
+            }
+        }
+    }
+
     pub fn mark_solid(&mut self, x: u16, y: u16) {
         if let Some(idx) = self.index(x, y) {
             self.solid[idx] = true;
@@ -241,12 +266,20 @@ impl TerminalRenderer {
         let Some(idx) = self.index(x, y).filter(|idx| !self.solid[*idx]) else {
             return;
         };
-        if let Some(sky) = self.sky.get(y as usize).copied().and_then(rgb)
-            && let Some(toward) = rgb(toward)
-        {
+        let Some(toward) = rgb(toward) else {
+            return;
+        };
+        if let Some(sky) = self.sky.get(y as usize).copied().and_then(rgb) {
             self.buffer[idx].background = self
                 .capabilities
                 .adjust_background(mix(sky, toward, amount));
+        }
+        if self.buffer[idx].fill != Color::Reset
+            && let Some(upper) = self.sky_upper.get(y as usize).copied().and_then(rgb)
+        {
+            self.buffer[idx].fill = self
+                .capabilities
+                .adjust_background(mix(upper, toward, amount));
         }
     }
 
@@ -256,6 +289,7 @@ impl TerminalRenderer {
         }
         if let Some(idx) = self.index(x, y) {
             self.buffer[idx].background = self.capabilities.adjust_background(color);
+            self.buffer[idx].fill = Color::Reset;
         }
     }
 
@@ -301,6 +335,7 @@ impl TerminalRenderer {
                                 character: printable(ch),
                                 color: adjusted_color,
                                 background: self.buffer[buffer_idx].background,
+                                fill: Color::Reset,
                             };
                         }
                     }
@@ -332,6 +367,7 @@ impl TerminalRenderer {
                         character: printable(ch),
                         color: adjusted_color,
                         background: self.buffer[buffer_idx].background,
+                        fill: Color::Reset,
                     };
                 }
             }
@@ -363,6 +399,7 @@ impl TerminalRenderer {
                     character: printable(ch),
                     color: self.capabilities.adjust_color(color),
                     background,
+                    fill: Color::Reset,
                 };
             }
         }
@@ -386,10 +423,11 @@ impl TerminalRenderer {
                     character: printable(ch),
                     color: self.capabilities.adjust_color(color),
                     background: under.color,
+                    fill: Color::Reset,
                 };
                 Ok(())
             }
-            '\u{2580}'..='\u{259f}' => Ok(()),
+            '\u{2580}'..='\u{259f}' | '\u{1fb00}'..='\u{1fb3b}' => Ok(()),
             _ => self.render_char(x, y, ch, color),
         }
     }
@@ -440,16 +478,21 @@ impl TerminalRenderer {
                         queue!(self.stdout, cursor::MoveTo(x, y))?;
                     }
 
-                    if cell.color != current_color {
-                        queue!(self.stdout, SetForegroundColor(cell.color))?;
-                        current_color = cell.color;
+                    let (character, color) = if cell.character == ' ' && cell.fill != Color::Reset {
+                        ('▀', cell.fill)
+                    } else {
+                        (cell.character, cell.color)
+                    };
+                    if color != current_color {
+                        queue!(self.stdout, SetForegroundColor(color))?;
+                        current_color = color;
                     }
                     if cell.background != current_background {
                         queue!(self.stdout, SetBackgroundColor(cell.background))?;
                         current_background = cell.background;
                     }
 
-                    queue!(self.stdout, Print(cell.character))?;
+                    queue!(self.stdout, Print(character))?;
                     last_pos = Some((x, y));
                 }
             }
@@ -531,6 +574,37 @@ mod tests {
         )
         .unwrap();
         assert_eq!(size, (0, 0));
+    }
+
+    #[test]
+    fn a_half_block_sky_draws_two_bands_until_something_covers_the_cell() {
+        let mut renderer = TerminalRenderer::headless_truecolor(3, 2);
+        let (top, low) = (
+            Color::Rgb {
+                r: 10,
+                g: 20,
+                b: 60,
+            },
+            Color::Rgb {
+                r: 30,
+                g: 40,
+                b: 80,
+            },
+        );
+        renderer.paint_backdrop_halves(&[top, Color::Reset], &[low, Color::Reset]);
+        assert_eq!(renderer.background_at(0, 0), low);
+        assert_eq!(renderer.buffer[0].fill, top);
+        renderer.render_char(1, 0, '*', Color::White).unwrap();
+        assert_eq!(
+            renderer.buffer[1].fill,
+            Color::Reset,
+            "a star takes the whole cell"
+        );
+        assert_eq!(renderer.background_at(1, 0), low);
+        renderer.tint(2, 0, Color::White, 0.5);
+        assert_ne!(renderer.buffer[2].fill, top, "a cloud tints both halves");
+        assert_eq!(renderer.buffer[3].fill, Color::Reset, "below the sky");
+        assert_eq!(row(&renderer, 0), " * ", "the text view stays blank");
     }
 
     #[test]

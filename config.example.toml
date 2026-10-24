@@ -2,7 +2,7 @@
 # (macOS: ~/Library/Application Support/weathrz/, Windows: %APPDATA%\weathrz\).
 theme = "tokyo-night"
 icons = "nerd"       # or "ascii" when your font has no Nerd Font icons
-glyphs = "unicode"   # or "ascii" for a font without box lines, ✦ stars, a block moon
+glyphs = "unicode"   # "fine" adds a sextant moon; "ascii" for a font without box lines, ✦ stars, a block moon
 language = "en"      # the only language so far
 hide = []            # e.g. ["pond", "flowers", "kite"]
 

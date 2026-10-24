@@ -26,10 +26,40 @@ const PINWHEEL_FRAMES: u64 = 4;
 pub(crate) struct Cloth {
     pub art: &'static [&'static str],
     pub mask: &'static [&'static str],
+    pub halves: Option<Halves>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) struct Halves {
+    pub upper: &'static [&'static str],
+    pub lower: &'static [&'static str],
 }
 
 const fn cloth(art: &'static [&'static str], mask: &'static [&'static str]) -> Cloth {
-    Cloth { art, mask }
+    Cloth {
+        art,
+        mask,
+        halves: None,
+    }
+}
+
+const fn striped(
+    art: &'static [&'static str],
+    mask: &'static [&'static str],
+    upper: &'static [&'static str],
+    lower: &'static [&'static str],
+) -> Cloth {
+    Cloth {
+        art,
+        mask,
+        halves: Some(Halves { upper, lower }),
+    }
+}
+
+fn half_at(cloth: &Cloth, row: usize, column: usize) -> Option<(char, char)> {
+    let halves = cloth.halves.as_ref()?;
+    let at = |rows: &[&str]| rows.get(row)?.chars().nth(column).filter(|ch| *ch != ' ');
+    Some((at(halves.upper)?, at(halves.lower)?))
 }
 
 const FLAGS: &[(&str, Cloth)] = &[
@@ -60,9 +90,11 @@ const FLAGS: &[(&str, Cloth)] = &[
     ),
     (
         "MY",
-        cloth(
+        striped(
             &["=(*======", "=========", "========="],
             &["byybrrrrr", "bbbbfffff", "rrrrrrrrr"],
+            &["    rrrrr", "    rrrrr", "rrrrrrrrr"],
+            &["    fffff", "    fffff", "fffffffff"],
         ),
     ),
     (
@@ -95,9 +127,11 @@ const FLAGS: &[(&str, Cloth)] = &[
     ),
     (
         "US",
-        cloth(
+        striped(
             &["*=*======", "=*=*=====", "========="],
             &["fbfbrrrrr", "bfbffffff", "rrrrrrrrr"],
+            &["    rrrrr", "    rrrrr", "rrrrrrrrr"],
+            &["    fffff", "    fffff", "fffffffff"],
         ),
     ),
     (
@@ -363,13 +397,21 @@ pub(crate) fn placed(
             let crest = phase.is_some_and(|phase| {
                 (from_pole + dy as i32 - phase).rem_euclid(RIPPLE_PERIOD) == 0
             });
-            let ch = if crest { rippled(ch, fish) } else { ch };
+            let halves = half_at(cloth, dy, from_pole as usize);
+            let ch = if crest && halves.is_none() {
+                rippled(ch, fish)
+            } else {
+                ch
+            };
             let (cx, ch) = if left {
                 (x - 1 - from_pole, mirror::mirror_char(ch).unwrap_or(ch))
             } else {
                 (x + 1 + from_pole, ch)
             };
-            out.extend(place(cx, hoisted + dy as i32, ch, letter, width, height));
+            out.extend(
+                place(cx, hoisted + dy as i32, ch, letter, width, height)
+                    .map(|cell| Placed { halves, ..cell }),
+            );
         }
     }
     out
@@ -448,10 +490,24 @@ impl AnimationSystem for HolidayFlag {
             wind,
             self.frame,
         ) {
-            let color =
-                mask::colour(cell.letter, &ctx.colors.palette).unwrap_or(ctx.colors.palette[0]);
-            let ch = crate::glyphs::swap(ctx.state.glyphs, crate::glyphs::Element::Cloth, cell.ch);
-            renderer.render_char(cell.x, cell.y, ch, color)?;
+            let paint =
+                |letter| mask::colour(letter, &ctx.colors.palette).unwrap_or(ctx.colors.palette[0]);
+            match cell
+                .halves
+                .filter(|_| ctx.state.glyphs != crate::glyphs::Glyphs::Ascii)
+            {
+                Some((upper, lower)) => {
+                    renderer.render_char_on(cell.x, cell.y, '▀', paint(upper), paint(lower))?
+                }
+                None => {
+                    let ch = crate::glyphs::swap(
+                        ctx.state.glyphs,
+                        crate::glyphs::Element::Cloth,
+                        cell.ch,
+                    );
+                    renderer.render_char(cell.x, cell.y, ch, paint(cell.letter))?;
+                }
+            }
         }
         Ok(())
     }
@@ -499,6 +555,47 @@ mod tests {
                 assert!(widths.windows(2).all(|pair| pair[0] == pair[1]), "{code}");
             }
         }
+    }
+
+    #[test]
+    fn half_block_stripes_line_up_with_their_flag() {
+        for (code, cloth) in FLAGS {
+            let Some(halves) = &cloth.halves else {
+                continue;
+            };
+            assert_eq!(halves.upper.len(), cloth.art.len(), "{code}");
+            assert_eq!(halves.lower.len(), cloth.art.len(), "{code}");
+            for (row, art) in cloth.art.iter().enumerate() {
+                assert_eq!(halves.upper[row].len(), art.len(), "{code}");
+                assert_eq!(halves.lower[row].len(), art.len(), "{code}");
+                for column in 0..art.len() {
+                    let upper = halves.upper[row].as_bytes()[column] != b' ';
+                    let lower = halves.lower[row].as_bytes()[column] != b' ';
+                    assert_eq!(upper, lower, "{code} row {row} column {column}");
+                }
+            }
+        }
+        let us = placed(
+            Banner::Flag(flag_of("US").unwrap()),
+            door(),
+            200,
+            32,
+            wind(12.0, 270.0),
+            0,
+        );
+        let stripes = us
+            .iter()
+            .filter(|cell| cell.halves == Some(('r', 'f')))
+            .count();
+        assert_eq!(
+            stripes,
+            5 + 5 + 9,
+            "six stripes in three rows beside the canton"
+        );
+        assert!(
+            us.iter()
+                .any(|cell| cell.ch == '*' && cell.halves.is_none())
+        );
     }
 
     #[test]

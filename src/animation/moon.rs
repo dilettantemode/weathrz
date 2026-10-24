@@ -13,6 +13,28 @@ const RIM: f64 = 0.97;
 const QUADRANTS: [char; 16] = [
     ' ', '▘', '▝', '▀', '▖', '▌', '▞', '▛', '▗', '▚', '▐', '▜', '▄', '▙', '▟', '█',
 ];
+const QUARTERS: [(f64, f64); 4] = [(-0.25, -0.25), (0.25, -0.25), (-0.25, 0.25), (0.25, 0.25)];
+const SIXTHS: [(f64, f64); 6] = [
+    (-0.25, -1.0 / 3.0),
+    (0.25, -1.0 / 3.0),
+    (-0.25, 0.0),
+    (0.25, 0.0),
+    (-0.25, 1.0 / 3.0),
+    (0.25, 1.0 / 3.0),
+];
+
+pub fn sextant(bits: usize) -> char {
+    match bits {
+        0 => ' ',
+        21 => '▌',
+        42 => '▐',
+        63 => '█',
+        _ => {
+            let skipped = usize::from(bits > 21) + usize::from(bits > 42);
+            char::from_u32(0x1FB00 + (bits - 1 - skipped) as u32).unwrap_or('█')
+        }
+    }
+}
 
 pub fn moon_anchor(width: u16, height: u16) -> (u16, u16) {
     (
@@ -169,6 +191,14 @@ impl Disc {
     }
 
     pub fn block_cells(self) -> Vec<MoonCell> {
+        self.sampled_cells(&QUARTERS, |bits| QUADRANTS[bits])
+    }
+
+    pub fn sextant_cells(self) -> Vec<MoonCell> {
+        self.sampled_cells(&SIXTHS, sextant)
+    }
+
+    fn sampled_cells(self, samples: &[(f64, f64)], glyph: impl Fn(usize) -> char) -> Vec<MoonCell> {
         let shape = shape();
         let (cx, cy) = shape.centre;
         let (rx, ry) = shape.radius;
@@ -179,8 +209,7 @@ impl Disc {
             for x in 0..columns {
                 let mut bits = 0;
                 let mut covered = false;
-                let quarters = [(-0.25, -0.25), (0.25, -0.25), (-0.25, 0.25), (0.25, 0.25)];
-                for (bit, (ox, oy)) in quarters.into_iter().enumerate() {
+                for (bit, &(ox, oy)) in samples.iter().enumerate() {
                     let u = (x as f64 + ox - cx) / rx;
                     let v = (cy - (y as f64 + oy)) / ry;
                     if u * u + v * v <= 1.0 {
@@ -194,7 +223,7 @@ impl Disc {
                     out.push(MoonCell {
                         dx: x as u16,
                         dy: y as u16,
-                        ch: QUADRANTS[bits],
+                        ch: glyph(bits),
                     });
                 }
             }
@@ -327,6 +356,7 @@ impl AnimationSystem for MoonSystem {
         let cells = match ctx.state.glyphs {
             Glyphs::Ascii => spot.disc.ascii_cells(),
             Glyphs::Unicode => spot.disc.block_cells(),
+            Glyphs::Fine => spot.disc.sextant_cells(),
         };
         for cell in cells {
             renderer.render_char(
@@ -447,6 +477,48 @@ mod tests {
         let half = drawn(&disc(90.0, 270.0).ascii_cells());
         assert!(half.contains(':'), "{half}");
         assert!(!half.contains('|'), "{half}");
+    }
+
+    #[test]
+    fn sextants_cover_all_sixty_four_patterns() {
+        assert_eq!(sextant(0), ' ');
+        assert_eq!(sextant(1), '\u{1fb00}');
+        assert_eq!(sextant(20), '\u{1fb13}');
+        assert_eq!(sextant(21), '▌');
+        assert_eq!(sextant(22), '\u{1fb14}');
+        assert_eq!(sextant(42), '▐');
+        assert_eq!(sextant(62), '\u{1fb3b}');
+        assert_eq!(sextant(63), '█');
+        let all: std::collections::HashSet<char> = (0..64).map(sextant).collect();
+        assert_eq!(all.len(), 64);
+    }
+
+    #[test]
+    fn the_fine_moon_is_lit_on_the_same_side_and_rounder() {
+        let crescent = disc(60.0, 270.0);
+        let fine = crescent.sextant_cells();
+        let lit_x: Vec<u16> = fine
+            .iter()
+            .filter(|cell| cell.ch != ' ')
+            .map(|cell| cell.dx)
+            .collect();
+        assert!(lit_x.iter().all(|x| *x >= 8), "{lit_x:?}");
+        let full = disc(180.0, 0.0);
+        let rows = |cells: &[MoonCell]| cells.iter().map(|cell| cell.dy).max();
+        assert_eq!(rows(&full.sextant_cells()), rows(&full.block_cells()));
+        let partial = |cells: &[MoonCell]| {
+            cells
+                .iter()
+                .filter(|cell| !matches!(cell.ch, ' ' | '█'))
+                .count()
+        };
+        assert!(
+            full.sextant_cells()
+                .iter()
+                .any(|cell| ('\u{1fb00}'..='\u{1fb3b}').contains(&cell.ch)),
+            "the rim uses sextants"
+        );
+        assert!(partial(&full.sextant_cells()) > 0);
     }
 
     #[test]

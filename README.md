@@ -72,7 +72,8 @@ holiday tables): [FORK.md](FORK.md).
   sweeps through in sheets. Lightning grows down the sky over a few frames and
   often flickers twice. An optional painted sky (`[sky] painted = true`) sits behind it all.
 - A Unicode sky by default (box-line rain, ✦ stars, ❄ snow, ░ fog, solid flags and a
-  block-drawn moon; `glyphs = "ascii"` turns it off); correct 256- and 16-colour
+  block-drawn moon; `glyphs = "fine"` draws the moon in sextants, `"ascii"` turns it all
+  off); correct 256- and 16-colour
   fallbacks; synchronized frames.
 - The bar shows the next likely rain ("rain ~13:00 · 69%"), feels-like when it differs,
   UV by day, humidity and US air quality; `[location] name` / `--location` take a place
@@ -154,8 +155,10 @@ fps = 30
 idle_fps = 5
 
 # Glyphs for the sky: "unicode" (default) — box-line rain (│ ╎ ╱ ╲), stars ✦ ✧ ·,
-# snow ❄ ·, fog ░, solid flag cloth and a block-drawn moon — or "ascii" for a font
-# without those characters. The house and garden are ASCII either way.
+# snow ❄ ·, fog ░, solid flag cloth with half-block stripes, a block-drawn moon and,
+# with a painted sky, two colour bands per row — or "fine" for all that plus a moon in
+# sextants (2×3 per cell; Windows Terminal, kitty, WezTerm and foot draw them) — or
+# "ascii" for a font without those characters. The house and garden are ASCII always.
 glyphs = "unicode"
 
 # The language of everything weathrz writes: the bar, the help box and every holiday

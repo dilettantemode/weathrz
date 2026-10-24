@@ -3,6 +3,7 @@ pub enum Glyphs {
     Ascii,
     #[default]
     Unicode,
+    Fine,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -39,8 +40,9 @@ pub fn parse(text: &str) -> Result<Glyphs, String> {
     match text.trim() {
         "ascii" => Ok(Glyphs::Ascii),
         "" | "unicode" => Ok(Glyphs::Unicode),
+        "fine" => Ok(Glyphs::Fine),
         other => Err(format!(
-            "glyphs = \"{other}\" is not valid (use \"unicode\" or \"ascii\"); using \"unicode\""
+            "glyphs = \"{other}\" is not valid (use \"unicode\", \"fine\" or \"ascii\"); using \"unicode\""
         )),
     }
 }

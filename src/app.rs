@@ -787,16 +787,31 @@ impl App {
                 .current_weather
                 .as_ref()
                 .map_or(WeatherCondition::Clear, |weather| weather.condition);
-            renderer.paint_backdrop(&crate::scene::sky_paint::sky_rows(
-                term_height,
-                layout.ground_y,
-                self.state
-                    .sun_sky
-                    .filter(|_| !self.force_night)
-                    .map(|sky| sky.elevation_deg),
-                is_day,
-                condition,
-            ));
+            let elevation = self
+                .state
+                .sun_sky
+                .filter(|_| !self.force_night)
+                .map(|sky| sky.elevation_deg);
+            if self.state.glyphs == crate::glyphs::Glyphs::Ascii {
+                renderer.paint_backdrop(&crate::scene::sky_paint::sky_rows(
+                    term_height,
+                    layout.ground_y,
+                    elevation,
+                    is_day,
+                    condition,
+                ));
+            } else {
+                let bands = crate::scene::sky_paint::sky_rows(
+                    term_height * 2,
+                    layout.ground_y * 2,
+                    elevation,
+                    is_day,
+                    condition,
+                );
+                let (upper, lower): (Vec<_>, Vec<_>) =
+                    bands.chunks(2).map(|pair| (pair[0], pair[1])).unzip();
+                renderer.paint_backdrop_halves(&upper, &lower);
+            }
         }
         let ctx = SceneContext {
             colors: &colors,

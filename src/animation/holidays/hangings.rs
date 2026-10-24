@@ -91,6 +91,7 @@ pub(crate) fn placed(
                     y: y as u16,
                     ch,
                     letter,
+                    halves: None,
                 });
             }
         }

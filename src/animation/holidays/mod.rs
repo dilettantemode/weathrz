@@ -21,6 +21,7 @@ pub(crate) struct Placed {
     pub y: u16,
     pub ch: char,
     pub letter: char,
+    pub halves: Option<(char, char)>,
 }
 
 pub(crate) fn place(
@@ -36,6 +37,7 @@ pub(crate) fn place(
         y: y as u16,
         ch,
         letter,
+        halves: None,
     })
 }
 
