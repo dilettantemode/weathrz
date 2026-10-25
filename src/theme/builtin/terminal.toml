@@ -1,0 +1,25 @@
+name = "Terminal"
+
+[day]
+fg = "ansi:white"
+muted = "ansi:grey"
+subtle = "ansi:dark_grey"
+red = "ansi:red"
+orange = "ansi:yellow"
+yellow = "ansi:yellow"
+green = "ansi:green"
+green_dark = "ansi:dark_green"
+cyan = "ansi:cyan"
+blue = "ansi:blue"
+blue_dark = "ansi:dark_blue"
+magenta = "ansi:magenta"
+brown = "ansi:dark_yellow"
+brown_dark = "ansi:dark_yellow"
+tan = "ansi:yellow"
+
+[night]
+green = "ansi:dark_green"
+tan = "ansi:dark_yellow"
+
+[day.elements]
+aqi = ["ansi:green", "ansi:yellow", "ansi:dark_yellow", "ansi:red", "ansi:magenta", "ansi:dark_red"]

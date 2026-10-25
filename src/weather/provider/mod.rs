@@ -16,8 +16,12 @@ pub struct WeatherProviderResponse {
     pub wind_direction: f64,
     pub sun: CelestialEvents,
     pub moon_phase: Option<f64>,
+    pub humidity: Option<f64>,
     pub timestamp: String,
     pub attribution: String,
+    pub feels_like: Option<f64>,
+    pub uv_index: Option<f64>,
+    pub outlook: Vec<crate::weather::types::HourPoint>,
 }
 
 #[async_trait]

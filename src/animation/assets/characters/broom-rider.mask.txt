@@ -1,0 +1,12 @@
+# mask for broom-rider.txt
+          mmmm
+          tt t
+  uuuuu   GGG
+ u uuu unnGnGGnnnnnnn
+tttt      G  G
+---
+          mmmm
+          tt t
+  uuuuu   GGG
+ u uuu unnGnGGnnnnnnn
+tttt      G  G

@@ -51,7 +51,7 @@ impl BirdSystem {
         self.birds.retain(|b| b.x < terminal_width as f32);
         if self.birds.len() < 3 && rng.random::<f32>() < 0.01 {
             let spawn_band = (terminal_height / 3).max(1);
-            let y = (rng.random::<u16>() % spawn_band) as f32;
+            let y = (crate::animation::sky::SKY_TOP + rng.random::<u16>() % spawn_band) as f32;
             let speed = 0.2 + (rng.random::<f32>() * 0.2);
             self.birds.push(Bird {
                 x: 0.0,
@@ -64,12 +64,12 @@ impl BirdSystem {
         }
     }
 
-    pub fn render(&self, renderer: &mut TerminalRenderer) -> io::Result<()> {
+    pub fn render(&self, renderer: &mut TerminalRenderer, color: Color) -> io::Result<()> {
         for bird in &self.birds {
             let x = bird.x as u16;
             let y = bird.y as u16;
             if x < self.terminal_width && y < self.terminal_height {
-                renderer.render_char(x, y, bird.character, Color::Yellow)?;
+                renderer.render_char(x, y, bird.character, color)?;
             }
         }
         Ok(())
@@ -106,8 +106,8 @@ impl AnimationSystem for BirdSystem {
     fn render(
         &mut self,
         renderer: &mut TerminalRenderer,
-        _ctx: &FrameContext<'_>,
+        ctx: &FrameContext<'_>,
     ) -> io::Result<()> {
-        BirdSystem::render(self, renderer)
+        BirdSystem::render(self, renderer, ctx.colors.birds)
     }
 }

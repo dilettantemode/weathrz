@@ -1,0 +1,23 @@
+# catppuccin/palette palette.json (latte); for a light terminal background; brown, brown_dark, tan, green_dark, blue_dark derived
+name = "Catppuccin Latte"
+
+[day]
+fg = "#4c4f69"
+muted = "#6c6f85"
+subtle = "#9ca0b0"
+red = "#d20f39"
+orange = "#fe640b"
+yellow = "#df8e1d"
+green = "#40a02b"
+green_dark = "#457c47"
+cyan = "#04a5e5"
+blue = "#1e66f5"
+blue_dark = "#335cb6"
+magenta = "#8839ef"
+brown = "#b75c31"
+brown_dark = "#905745"
+tan = "#e4ac5e"
+
+[night]
+green = "#44883e"
+green_dark = "#476e51"

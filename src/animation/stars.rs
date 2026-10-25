@@ -23,6 +23,7 @@ struct ShootingStar {
 }
 
 pub struct StarSystem {
+    glyphs: crate::glyphs::Glyphs,
     stars: Vec<Star>,
     shooting_star: Option<ShootingStar>,
     terminal_width: u16,
@@ -36,6 +37,7 @@ impl StarSystem {
         let stars = Self::create_stars(terminal_width, terminal_height, &[]);
 
         Self {
+            glyphs: crate::glyphs::Glyphs::Ascii,
             stars,
             shooting_star: None,
             terminal_width,
@@ -53,13 +55,18 @@ impl StarSystem {
         }
 
         let mut rng = rand::rng();
-        let sky_height = (terminal_height / 2).max(1);
+        let sky_height = star_rows(terminal_height);
         let count = (terminal_width as usize * terminal_height as usize) / 80;
 
         let mut stars: Vec<Star> = initial_stars
             .iter()
             .cloned()
-            .filter(|s| s.x < terminal_width && s.y < sky_height)
+            .filter(|s| {
+                s.x < terminal_width
+                    && s.y < sky_height
+                    && (s.y >= crate::animation::sky::SKY_TOP
+                        || sky_height <= crate::animation::sky::SKY_TOP)
+            })
             .take(count)
             .collect();
 
@@ -70,7 +77,8 @@ impl StarSystem {
 
             loop {
                 let x = rng.random::<u16>() % terminal_width;
-                let y = rng.random::<u16>() % sky_height;
+                let top = crate::animation::sky::SKY_TOP.min(sky_height.saturating_sub(1));
+                let y = top + rng.random::<u16>() % (sky_height - top).max(1);
 
                 let too_close = stars.iter().any(|star: &Star| {
                     let dx = (star.x as f32 - x as f32).abs();
@@ -153,7 +161,12 @@ impl StarSystem {
         }
     }
 
-    pub fn render(&self, renderer: &mut TerminalRenderer) -> io::Result<()> {
+    pub fn render(
+        &self,
+        renderer: &mut TerminalRenderer,
+        star_colors: &[Color; 2],
+        shooting: Color,
+    ) -> io::Result<()> {
         for star in &self.stars {
             let ch = if star.brightness > 0.8 {
                 '*'
@@ -163,11 +176,12 @@ impl StarSystem {
                 '.'
             };
             let color = if star.brightness > 0.6 {
-                Color::White
+                star_colors[0]
             } else {
-                Color::DarkGrey
+                star_colors[1]
             };
 
+            let ch = crate::glyphs::swap(self.glyphs, crate::glyphs::Element::Star, ch);
             renderer.render_char(star.x, star.y, ch, color)?;
         }
 
@@ -182,7 +196,8 @@ impl StarSystem {
                 && head_y >= 0
                 && head_y < self.terminal_height as i16
             {
-                renderer.render_char(head_x as u16, head_y as u16, '*', Color::White)?;
+                let head = crate::glyphs::swap(self.glyphs, crate::glyphs::Element::Star, '*');
+                renderer.render_char(head_x as u16, head_y as u16, head, shooting)?;
             }
 
             for i in 1..star.length {
@@ -195,7 +210,8 @@ impl StarSystem {
                     && trail_y < self.terminal_height as i16
                 {
                     let ch = if i == 1 { '+' } else { '.' };
-                    renderer.render_char(trail_x as u16, trail_y as u16, ch, Color::White)?;
+                    let ch = crate::glyphs::swap(self.glyphs, crate::glyphs::Element::Star, ch);
+                    renderer.render_char(trail_x as u16, trail_y as u16, ch, shooting)?;
                 }
             }
         }
@@ -214,7 +230,7 @@ impl AnimationSystem for StarSystem {
     }
 
     fn is_active(&self, ctx: &FrameContext<'_>) -> bool {
-        !ctx.conditions.sun.is_day
+        !ctx.conditions.sun.is_day && !ctx.conditions.veils_the_sky()
     }
 
     fn on_resize(&mut self, size: TerminalSize) {
@@ -233,8 +249,17 @@ impl AnimationSystem for StarSystem {
     fn render(
         &mut self,
         renderer: &mut TerminalRenderer,
-        _ctx: &FrameContext<'_>,
+        ctx: &FrameContext<'_>,
     ) -> io::Result<()> {
-        StarSystem::render(self, renderer)
+        self.glyphs = ctx.state.glyphs;
+        StarSystem::render(self, renderer, &ctx.colors.stars, ctx.colors.shooting_star)
     }
 }
+
+fn star_rows(terminal_height: u16) -> u16 {
+    crate::scene::world::WorldScene::ground_y(terminal_height)
+        .saturating_sub(crate::scene::world::house::House::HEIGHT + STARLESS_ROWS)
+        .max(1)
+}
+
+const STARLESS_ROWS: u16 = 3;

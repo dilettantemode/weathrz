@@ -20,6 +20,10 @@ struct CachedWeather {
     fetched_at: Instant,
 }
 
+pub fn predates_the_outlook(data: &WeatherData, provider: Provider) -> bool {
+    provider == Provider::OpenMeteo && data.outlook.is_empty() && data.feels_like.is_none()
+}
+
 impl WeatherClient {
     pub fn new(provider: Arc<dyn WeatherProvider>, cache_duration: Duration) -> Self {
         Self {
@@ -47,6 +51,7 @@ impl WeatherClient {
         if let Some(cached_data) =
             cache::load_cached_weather(location.latitude, location.longitude, provider).await
             && std::env::var("CACHE_DISABLED").is_err()
+            && !predates_the_outlook(&cached_data, provider)
         // Should've done this sooner
         {
             let mut cache = self.cache.write().await;
@@ -57,6 +62,15 @@ impl WeatherClient {
             return Ok(cached_data);
         }
 
+        self.fetch_fresh(location, units, provider).await
+    }
+
+    pub async fn fetch_fresh(
+        &self,
+        location: &WeatherLocation,
+        units: &WeatherUnits,
+        provider: Provider,
+    ) -> Result<WeatherData, WeatherError> {
         let response = self.provider.get_current_weather(location, units).await?;
 
         let data = WeatherNormalizer::normalize(response);

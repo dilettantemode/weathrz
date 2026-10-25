@@ -1,5 +1,8 @@
 use crate::app_state::AppState;
+use crate::events::ActiveEvents;
 use crate::render::TerminalRenderer;
+use crate::scene::DoorAnchor;
+use crate::theme::colors::ElementColors;
 use crate::weather::{FogIntensity, RainIntensity, SnowIntensity, WeatherConditions};
 use rand::Rng;
 use std::io;
@@ -31,10 +34,14 @@ pub struct FrameCommands {
 pub struct FrameContext<'a> {
     pub size: TerminalSize,
     pub horizon_y: u16,
+    pub skyline_y: u16,
     pub conditions: &'a WeatherConditions,
     pub state: &'a AppState,
     pub show_leaves: bool,
     pub chimney: Option<ChimneyPosition>,
+    pub door: Option<DoorAnchor>,
+    pub colors: &'a ElementColors,
+    pub events: &'a ActiveEvents,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -46,6 +53,10 @@ pub struct ChimneyPosition {
 pub trait AnimationSystem {
     fn id(&self) -> &'static str;
     fn layer(&self) -> RenderLayer;
+
+    fn drawn_before(&self) -> Option<&'static str> {
+        None
+    }
 
     fn is_active(&self, _ctx: &FrameContext<'_>) -> bool {
         true

@@ -1,0 +1,7 @@
+# P23 tiny hot-air balloon, fsc
+# https://asciiart.website/art/2633
+ .--.
+;    ;
+ '..'
+  ^^
+  MM

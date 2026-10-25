@@ -1,0 +1,14 @@
+# mask for dragon.txt
+              GGGGGGGGGG
+      GGGGGGGG         GG     g
+     GGGGGGGGGGGGGGGGGGGGGGGGGgggg
+        gggggggg    gggg   ggg   yggg
+  gggggg  gg gggggggggggtggggtgggggggg
+        ggggggg
+---
+
+                    GGG       g
+               GGGGG   GGGGGGGgggg
+        gggggggg    gggg   ggg   yggg
+  gggggg  gg gggggggggggtggggtgggggggg
+        ggggggg

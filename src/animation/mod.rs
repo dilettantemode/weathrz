@@ -1,13 +1,20 @@
-pub mod airplanes;
 pub mod birds;
 pub mod chimney;
+pub mod christmas;
 pub mod clouds;
 pub mod fireflies;
+pub mod fireworks;
+pub mod flyers;
 pub mod fog;
+pub mod halloween;
+pub mod holidays;
+pub mod kite;
 pub mod leaves;
 pub mod moon;
 pub mod raindrops;
+pub mod sky;
 pub mod snow;
+pub(crate) mod solid;
 pub mod stars;
 pub mod sunny;
 pub mod system;
@@ -37,6 +44,10 @@ pub struct AnimationController {
 impl AnimationController {
     pub fn new() -> Self {
         Self { current_frame: 0 }
+    }
+
+    pub fn frame<'a, A: Animation>(&self, animation: &'a A) -> &'a [String] {
+        animation.get_frame(self.current_frame)
     }
 
     pub fn next_frame<A: Animation>(&mut self, animation: &A) -> usize {

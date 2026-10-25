@@ -1,30 +1,17 @@
-use crate::theme::{Palette, Theme, ThemeRegistry};
-use crossterm::style::Color;
+use crate::theme::Theme;
+use crate::theme::colors::ThemeColors;
+use crate::theme::load;
 
-pub const DEFAULT_PALETTE: Palette = Palette {
-    sky_day: Color::Cyan,
-    sky_night: Color::DarkBlue,
-    ground_day: Color::Green,
-    ground_night: Color::DarkGreen,
-    accent_primary: Color::DarkRed,
-    accent_secondary: Color::Rgb {
-        r: 210,
-        g: 180,
-        b: 140,
-    },
-    atmosphere: None,
-};
+pub fn default_colors() -> ThemeColors {
+    load::resolve("default", None).colors
+}
 
-fn default_theme() -> Theme {
+pub fn default_theme() -> Theme {
     Theme {
         id: "default",
         display_name: "Default",
         scene_id: "world",
         overlay_id: None,
-        palette: DEFAULT_PALETTE,
+        colors: default_colors(),
     }
-}
-
-pub fn register_all(registry: &mut ThemeRegistry) {
-    registry.register(default_theme());
 }

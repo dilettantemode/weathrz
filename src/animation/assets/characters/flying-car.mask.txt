@@ -1,0 +1,8 @@
+# mask for flying-car.txt
+     fffffffffffff
+    ffff   uuu  fffo
+      cccc    cccc
+---
+     fffffffffffff
+    ffff   uuu  fffo
+      cccc    cccc

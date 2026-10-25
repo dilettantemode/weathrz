@@ -1,0 +1,10 @@
+# mask for fairy.txt
+cc t
+cmmm
+  m ty
+  tt
+---
+cc t
+cmmm
+  m ty
+  tt

@@ -15,12 +15,16 @@ impl WeatherNormalizer {
             wind_direction: response.wind_direction,
             sun: response.sun,
             moon_phase: response.moon_phase,
+            humidity: response.humidity,
             timestamp: response.timestamp,
             attribution: response.attribution,
+            feels_like: response.feels_like,
+            uv_index: response.uv_index,
+            outlook: response.outlook,
         }
     }
 
-    fn wmo_code_to_condition(code: i32) -> WeatherCondition {
+    pub(crate) fn wmo_code_to_condition(code: i32) -> WeatherCondition {
         match code {
             0 => WeatherCondition::Clear,
             1 => WeatherCondition::PartlyCloudy,
@@ -102,8 +106,12 @@ mod tests {
             wind_direction: 180.0,
             sun: CelestialEvents::from_bool(true),
             moon_phase: Some(0.5),
+            humidity: None,
             timestamp: "2024-01-01T12:00".to_string(),
             attribution: "".to_string(),
+            feels_like: None,
+            uv_index: None,
+            outlook: Vec::new(),
         };
 
         let data = WeatherNormalizer::normalize(response);

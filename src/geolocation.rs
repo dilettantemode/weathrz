@@ -29,6 +29,10 @@ pub async fn detect_location() -> Result<GeoLocation, GeolocationError> {
     detect_location_with_retry().await
 }
 
+pub async fn detect_location_fresh() -> Result<GeoLocation, GeolocationError> {
+    detect_location_with_retry().await
+}
+
 async fn detect_location_with_retry() -> Result<GeoLocation, GeolocationError> {
     let mut last_error = None;
 
@@ -144,7 +148,7 @@ async fn fetch_reverse_geocode(latitude: f64, longitude: f64, language: &str) ->
 
     let mut req = client.get(&url).header(
         "User-Agent",
-        format!("weathr/{}", env!("CARGO_PKG_VERSION")),
+        format!("weathrz/{}", env!("CARGO_PKG_VERSION")),
     );
 
     if language != "auto" {

@@ -1,21 +1,13 @@
 pub mod catalogue;
+pub mod colors;
+pub mod load;
+pub mod value;
 
 use std::collections::HashMap;
 use std::fmt;
 
-use crossterm::style::Color;
-
-#[allow(dead_code)]
-#[derive(Debug, Clone, Copy)]
-pub struct Palette {
-    pub sky_day: Color,
-    pub sky_night: Color,
-    pub ground_day: Color,
-    pub ground_night: Color,
-    pub accent_primary: Color,
-    pub accent_secondary: Color,
-    pub atmosphere: Option<Color>,
-}
+use colors::ThemeColors;
+use load::ResolvedTheme;
 
 pub struct Theme {
     pub id: &'static str,
@@ -23,7 +15,7 @@ pub struct Theme {
     pub display_name: &'static str,
     pub scene_id: &'static str,
     pub overlay_id: Option<&'static str>,
-    pub palette: Palette,
+    pub colors: ThemeColors,
 }
 
 #[derive(Debug)]
@@ -62,12 +54,26 @@ impl ThemeRegistry {
             themes: HashMap::new(),
             active: "default",
         };
-        catalogue::register_all(&mut registry);
+        registry.register(catalogue::default_theme());
         registry
     }
 
     pub fn register(&mut self, theme: Theme) {
         self.themes.insert(theme.id, theme);
+    }
+
+    pub fn activate_resolved(&mut self, resolved: ResolvedTheme) {
+        let id: &'static str = Box::leak(resolved.id.into_boxed_str());
+        let display_name: &'static str = Box::leak(resolved.display_name.into_boxed_str());
+        self.register(Theme {
+            id,
+            display_name,
+            scene_id: "world",
+            overlay_id: None,
+            colors: resolved.colors,
+        });
+        self.set_active(id)
+            .expect("a theme that was just registered can be activated");
     }
 
     pub fn set_active(&mut self, id: &str) -> Result<(), ThemeError> {

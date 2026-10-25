@@ -1,0 +1,44 @@
+# weathrz events.toml: copy to ~/.config/weathrz/events.toml (next to config.toml).
+# weathrz reads it at start; problems show as warnings and the rest still loads.
+
+# Move a bundled holiday that follows the moon or an announcement, for example when
+# your community sights the new moon a day later than the bundled date. Pick the date
+# with `year = YYYY` (or `from = "YYYY-MM-DD"`, any day inside it) and say where it goes
+# with `to = "YYYY-MM-DD"` (the new first day) or `shift = <days>`. The whole window
+# moves, eve included. Moving Eid al-Fitr (pk:eid_al_fitr, my:eid_al_fitr, id:idulfitri…)
+# also moves the end of that year's Ramadan and any holiday travel week tied to it.
+# `weathrz --list-events` shows the ids and dates.
+
+# [[move]]
+# event = "pk:eid_al_fitr"
+# year = 2027
+# shift = 1
+#
+# [[move]]
+# event = "pk:eid_al_adha"
+# year = 2027
+# to = "2027-05-18"
+
+# Your own days. `date` is "MM-DD" for every year or "YYYY-MM-DD" for once;
+# `days` is the length (default 1). `{since YYYY}` in the greeting becomes the
+# number of years since then. Own days greet before any holiday on the same day.
+#
+# look: none, flag, bunting, kites, bonfire, holi, koinobori, songkran, harvest_moon,
+#       carnival, parol, wreath, fireworks, lanterns, lights, candles, sky_lanterns,
+#       ketupat, eggs, torches, pumpkins, calm
+#       (join two with +, for example "candles+bunting")
+# icon: cake, gift, heart, party, star, flag, fire, flower, one character, or a
+#       hex code point such as "f00eb"
+
+# [[day]]
+# name = "Mum's birthday"
+# date = "03-14"
+# greeting = "Happy birthday, Mum · {since 1960}"
+# look = "candles+bunting"
+# icon = "cake"
+#
+# [[day]]
+# name = "Moving day"
+# date = "2027-01-02"
+# days = 2
+# look = "fireworks"

@@ -1,5 +1,6 @@
 use crate::render::TerminalRenderer;
 use crate::scene::world::style::WorldSceneStyle;
+use crate::scene::world::yard::{self, Yard};
 use std::io;
 
 pub struct Ground;
@@ -8,9 +9,8 @@ impl Ground {
     pub fn render(
         &self,
         renderer: &mut TerminalRenderer,
-        width: u16,
-        height: u16,
-        y_start: u16,
+        (width, height, y_start): (u16, u16, u16),
+        yard: &Yard,
         style: &WorldSceneStyle,
     ) -> io::Result<()> {
         let width = width as usize;
@@ -26,10 +26,12 @@ impl Ground {
                             style.flower_colors[(x + y) % style.flower_colors.len()],
                         )
                     } else if r < 15 {
-                        (',', style.grass_secondary)
+                        (yard::grass(',', x as u16, yard), style.grass_secondary)
                     } else {
-                        ('^', style.grass_primary)
+                        (yard::grass('^', x as u16, yard), style.grass_primary)
                     }
+                } else if let Some(ch) = yard::road_row(y as u16).filter(|_| yard.road) {
+                    (ch, style.path)
                 } else {
                     let r = pseudo_rand(x, y);
                     let ch = if r < 20 {

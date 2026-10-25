@@ -29,7 +29,7 @@ jobs:
         run: cargo test --verbose
 
       - name: Smoke Test
-        run: cargo run --bin weathr -- --help
+        run: cargo run --bin weathrz -- --help
 
       - name: Format Check
         run: cargo fmt -- --check

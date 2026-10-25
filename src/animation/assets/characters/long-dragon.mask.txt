@@ -1,0 +1,8 @@
+# mask for long-dragon.txt
+  yyyy      rrrrrr          rrrrrr          rrrrrr
+rry  rryrrrr  yy  rrrrrrrrrr  yy  rrrrrrrrrr  yy  rrrrrrooo
+  yyyy   yy                           yy
+---
+  yyyy      rrrrrr          rrrrrr          rrrrrr
+rry  rryrrrr  yy  rrrrrrrrrr  yy  rrrrrrrrrr  yy  rrrrrrooo
+  yyyy   yy                           yy

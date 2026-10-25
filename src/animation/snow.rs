@@ -15,10 +15,11 @@ struct Snowflake {
     speed_x: f32,
     sway_offset: f32,
     character: char,
-    color: Color,
+    near: bool,
 }
 
 pub struct SnowSystem {
+    glyphs: crate::glyphs::Glyphs,
     flakes: Vec<Snowflake>,
     terminal_width: u16,
     terminal_height: u16,
@@ -35,6 +36,7 @@ impl SnowSystem {
         };
 
         let mut system = Self {
+            glyphs: crate::glyphs::Glyphs::Ascii,
             flakes: Vec::with_capacity(flakes_capacity),
             terminal_width,
             terminal_height,
@@ -87,16 +89,12 @@ impl SnowSystem {
 
         self.flakes.push(Snowflake {
             x,
-            y: 0.0,
+            y: f32::from(crate::animation::sky::SKY_TOP),
             speed_y: base_speed_y + (rng.random::<f32>() * 0.05),
             speed_x: self.wind_x + (rng.random::<f32>() * 0.1 - 0.05),
             sway_offset: rng.random::<f32>() * 100.0, // Random phase for sway
             character: chars[char_idx],
-            color: if z_index == 1 {
-                Color::White
-            } else {
-                Color::DarkGrey
-            },
+            near: z_index == 1,
         });
     }
 
@@ -149,14 +147,19 @@ impl SnowSystem {
         });
     }
 
-    pub fn render(&self, renderer: &mut TerminalRenderer) -> io::Result<()> {
+    pub fn render(&self, renderer: &mut TerminalRenderer, colors: &[Color; 2]) -> io::Result<()> {
         for flake in &self.flakes {
             let x = flake.x as i16;
             let y = flake.y as i16;
 
             if x >= 0 && x < self.terminal_width as i16 && y >= 0 && y < self.terminal_height as i16
             {
-                renderer.render_char(x as u16, y as u16, flake.character, flake.color)?;
+                renderer.render_char_in_front(
+                    x as u16,
+                    y as u16,
+                    crate::glyphs::swap(self.glyphs, crate::glyphs::Element::Snow, flake.character),
+                    if flake.near { colors[0] } else { colors[1] },
+                )?;
             }
         }
         Ok(())
@@ -202,8 +205,9 @@ impl AnimationSystem for SnowSystem {
     fn render(
         &mut self,
         renderer: &mut TerminalRenderer,
-        _ctx: &FrameContext<'_>,
+        ctx: &FrameContext<'_>,
     ) -> io::Result<()> {
-        SnowSystem::render(self, renderer)
+        self.glyphs = ctx.state.glyphs;
+        SnowSystem::render(self, renderer, &ctx.colors.snow)
     }
 }

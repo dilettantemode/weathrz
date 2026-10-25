@@ -212,8 +212,23 @@ pub struct WeatherData {
     pub wind_direction: f64,
     pub sun: CelestialEvents,
     pub moon_phase: Option<f64>,
+    pub humidity: Option<f64>,
     pub timestamp: String,
     pub attribution: String,
+    #[serde(default)]
+    pub feels_like: Option<f64>,
+    #[serde(default)]
+    pub uv_index: Option<f64>,
+    #[serde(default)]
+    pub outlook: Vec<HourPoint>,
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct HourPoint {
+    pub time: String,
+    pub probability: Option<u8>,
+    pub code: i32,
+    pub precipitation: f64,
 }
 
 #[derive(Debug, Clone, Copy, serde::Deserialize)]
@@ -263,7 +278,18 @@ pub struct WeatherConditions {
     pub is_thunderstorm: bool,
     pub is_cloudy: bool,
     pub is_foggy: bool,
+    pub is_overcast: bool,
     pub sun: CelestialEvents,
+}
+
+impl WeatherConditions {
+    pub fn veils_the_sky(&self) -> bool {
+        self.is_raining
+            || self.is_snowing
+            || self.is_thunderstorm
+            || self.is_foggy
+            || self.is_overcast
+    }
 }
 
 impl Default for WeatherConditions {
@@ -274,6 +300,7 @@ impl Default for WeatherConditions {
             is_thunderstorm: false,
             is_cloudy: false,
             is_foggy: false,
+            is_overcast: false,
             sun: CelestialEvents::from_bool(true),
         }
     }
@@ -287,6 +314,8 @@ pub struct CelestialEvents {
     pub upper_transit: Option<NaiveTime>,
     pub set: Option<NaiveTime>,
     pub end_twilight: Option<NaiveTime>,
+    #[serde(default)]
+    pub utc_offset_secs: Option<i32>,
 }
 
 impl CelestialEvents {
@@ -298,6 +327,7 @@ impl CelestialEvents {
             upper_transit: None,
             set: None,
             end_twilight: None,
+            utc_offset_secs: None,
         }
     }
 
@@ -309,6 +339,20 @@ impl CelestialEvents {
             upper_transit: None,
             set: None,
             end_twilight: None,
+            utc_offset_secs: None,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn weather_data_without_humidity_still_loads() {
+        let json = r#"{"condition":"clear","temperature":30.0,"precipitation":0.0,"wind_speed":2.0,"wind_direction":90.0,"sun":{"is_day":true,"begin_twilight":null,"rise":null,"upper_transit":null,"set":null,"end_twilight":null},"moon_phase":0.5,"timestamp":"t","attribution":""}"#;
+        let data: WeatherData = serde_json::from_str(json).unwrap();
+        assert_eq!(data.humidity, None);
+        assert_eq!(data.temperature, 30.0);
     }
 }

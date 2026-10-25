@@ -13,7 +13,7 @@ struct Leaf {
     sway_phase: f32,
     sway_amplitude: f32,
     rotation: u8,
-    color: Color,
+    color_index: usize,
     character: char,
 }
 
@@ -36,39 +36,7 @@ impl Leaf {
         let sway_phase = rng.random::<f32>() * std::f32::consts::PI * 2.0;
         let sway_amplitude = 0.5 + (rng.random::<f32>() * 1.5);
 
-        let colors = [
-            Color::Rgb {
-                r: 255,
-                g: 165,
-                b: 0,
-            }, // Orange
-            Color::Rgb {
-                r: 218,
-                g: 165,
-                b: 32,
-            }, // Golden
-            Color::Rgb {
-                r: 184,
-                g: 134,
-                b: 11,
-            }, // Dark golden
-            Color::Rgb {
-                r: 205,
-                g: 92,
-                b: 92,
-            }, // Indian red
-            Color::Rgb {
-                r: 160,
-                g: 82,
-                b: 45,
-            }, // Sienna brown
-            Color::Rgb {
-                r: 139,
-                g: 69,
-                b: 19,
-            }, // Saddle brown
-        ];
-        let color = colors[(rng.random::<u32>() % colors.len() as u32) as usize];
+        let color_index = (rng.random::<u32>() % 6) as usize;
 
         let chars = ['*', '+', ',', '.', '~'];
         let character = chars[(rng.random::<u32>() % chars.len() as u32) as usize];
@@ -81,7 +49,7 @@ impl Leaf {
             sway_phase,
             sway_amplitude,
             rotation: 0,
-            color,
+            color_index,
             character,
         }
     }
@@ -185,14 +153,19 @@ impl FallingLeaves {
         }
     }
 
-    pub fn render(&self, renderer: &mut TerminalRenderer) -> io::Result<()> {
+    pub fn render(&self, renderer: &mut TerminalRenderer, colors: &[Color; 6]) -> io::Result<()> {
         for leaf in &self.leaves {
             let x = leaf.x as i16;
             let y = leaf.y as i16;
 
             if x >= 0 && y >= 0 && x < self.terminal_width as i16 && y < self.terminal_height as i16
             {
-                renderer.render_char(x as u16, y as u16, leaf.get_character(), leaf.color)?;
+                renderer.render_char(
+                    x as u16,
+                    y as u16,
+                    leaf.get_character(),
+                    colors[leaf.color_index],
+                )?;
             }
         }
         Ok(())
@@ -229,8 +202,8 @@ impl AnimationSystem for FallingLeaves {
     fn render(
         &mut self,
         renderer: &mut TerminalRenderer,
-        _ctx: &FrameContext<'_>,
+        ctx: &FrameContext<'_>,
     ) -> io::Result<()> {
-        FallingLeaves::render(self, renderer)
+        FallingLeaves::render(self, renderer, &ctx.colors.leaves)
     }
 }

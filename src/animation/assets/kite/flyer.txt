@@ -1,0 +1,9 @@
+# K4 stick flyer, Dr Andrew H.J. Tate (redrawn facing left, walk pose added)
+# https://ascii.co.uk/art/kite
+  Q
++-|
+ / \
+---
+  Q
++-|
+  |

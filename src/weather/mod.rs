@@ -1,5 +1,7 @@
+pub mod air_quality;
 pub mod client;
 pub mod normalizer;
+pub mod outlook;
 pub mod provider;
 pub mod types;
 pub mod units;

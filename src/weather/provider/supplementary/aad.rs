@@ -156,6 +156,7 @@ impl SupplementaryWeatherProvider for AADProvider {
                     upper_transit,
                     set,
                     end_twilight: Some(end_twilight),
+                    utc_offset_secs: None,
                 };
 
                 Ok(SupplementaryProviderResponse::SunAndMoonForOneDay {
